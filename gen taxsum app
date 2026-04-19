@@ -39,14 +39,22 @@ If TaxYr is not within taxbrackettbl, then echo $TaxYr” is not within script�
 
 ====
 
-Show Income Breakdown in table
+Pie chart specification
+	use more distinctive colors for each slice
+	shorten and/or abbreviate label (eliminate word bracket), %, and amount rounded to $k. Put inside slice if possible. If doesn’t fit, put outside near circumference of the slice
+
+====
+
+Show Income Breakdown in table and pie chart
 
 % of total income for the following
 	Ordinary dividends - Qualified dividends
 	Qualified dividends
 	IRA withdraw
 
-Show Tax Breakdown in table
+====
+
+Show Tax Breakdown in table and pie chart
 	All lines are in Qualified Dividend and Capital Gain Tax Worksheet
 	Total tax = line 25
 
@@ -66,13 +74,25 @@ Ordinary tax bracket
 	tax ( line 22 )
 	% of total tax ( line 22 / 25 )
 
-Ordinary tax bracket tax breakdown
+Pie chart amount should be income amount
+
+====
+
+Ordinary tax bracket tax breakdown in table and pie chart
 	use taxbrackettbl for this year
 	for each bracket in show tax amount within each bracket  and % of total tax ( divide by line 25 )
 
+Pie chart amount should be income amount
+
+====
+
 Show NIIT amount
 
+====
+
 Show Foreign Tax Credit
+
+====
 
 Show tax payment schedule
 	4 2210AI period start end dates are 1/1/-3/31 4/1-5/31 6/1-8/31 9/1-12/31
@@ -81,8 +101,12 @@ Show tax payment schedule
 	Row for Estimated tax payment for each 2210AI period
 	Do not include ES vouchers for next year.
 
+====
+
 Remaining tax owed or refund amount
 	show only single line for owned or refund
+
+====
 
 Do not display ES vouchers for next year.
 
@@ -93,6 +117,12 @@ Keep sections on same page on output file
 =====
 
 Use prior_taxsum.py as reference for working python script example
+
+=====
+
+Layout
+
+	fit each section within page borders
 
 =====
 
