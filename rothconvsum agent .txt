@@ -1,0 +1,16 @@
+Output
+
+Generate PDF Summary
+
+====
+
+Task
+
+Compare and summarize impact of doing $260k IRA Roth Conversion
+include income amounts in tax component detail
+
+====
+
+Reference
+
+Use included prior comparison PDF as reference
