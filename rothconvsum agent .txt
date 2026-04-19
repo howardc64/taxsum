@@ -6,10 +6,9 @@ Generate PDF Summary
 
 Task
 
-Compare and summarize impact of doing $260k IRA Roth Conversion
+Compare 2 tax files and summarize impact of Roth IRA Conversion
 include income amounts in tax component detail
 include both income and tax change in tax component detail
-
 
 ====
 
