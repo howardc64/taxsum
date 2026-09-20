@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tax Return Summarizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root {
+    --paper: #FFFFFF;
+    --paper-raised: #F6F8FA;
+    --rule: #D8DEE4;
+    --rule-strong: #AEBAC4;
+    --ink: #1B2733;
+    --ink-soft: #4C5A67;
+    --ink-faint: #7C8894;
+    --accent-owe: #B5482F;
+    --accent-refund: #2F7A4F;
+    --accent-line: #2C5A82;
+    --navy: #2C5A82;
+    --navy-dark: #1F425E;
+    --c-blue: #3B6EA5;
+    --c-green: #4C9A4C;
+    --c-orange: #E0932E;
+    --c-red: #C0392B;
+    --c-purple: #7B5EA7;
+    --c-teal: #2E8B8B;
+    --c-gold: #B8952E;
+    --c-slate: #5C6B7A;
+    --c-rose: #B85C7A;
+    --c-cyan: #2E97A7;
+    --c-brown: #8B5E3C;
+    --c-magenta: #A63D82;
+    --c-olive: #7A8B3C;
+    --c-navy2: #3C5A99;
+    --c-pink: #C97AA0;
+    --c-indigo: #5B4E8C;
+    --c-other: #6B6B6B;
+    --radius: 2px;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --paper: #14181D;
+      --paper-raised: #1B2126;
+      --rule: #333B42;
+      --rule-strong: #4A545C;
+      --ink: #E8ECEF;
+      --ink-soft: #B0BAC2;
+      --ink-faint: #808A92;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14181D;
+    --paper-raised: #1B2126;
+    --rule: #333B42;
+    --rule-strong: #4A545C;
+    --ink: #E8ECEF;
+    --ink-soft: #B0BAC2;
+    --ink-faint: #808A92;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper-raised);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  h1, h2, h3 { font-weight: 700; margin: 0; color: var(--ink); }
+  .mono, .num { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-variant-numeric: tabular-nums; }
+  a { color: var(--accent-line); }
+
+  #app { max-width: 1000px; margin: 0 auto; padding: 28px 20px 60px; }
+  #intake, #confirm { max-width: 720px; margin-left: auto; margin-right: auto; font-size: 15px; }
+
+  /* ---------- Intake screen ---------- */
+  #intake { padding: 48px 8px 24px; }
+  #intake .eyebrow { font-size: 13px; color: var(--ink-faint); letter-spacing: 0.02em; margin-bottom: 10px; }
+  #intake h1 { font-size: 32px; line-height: 1.18; max-width: 15ch; }
+  #intake p.lede { max-width: 52ch; color: var(--ink-soft); font-size: 16px; margin-top: 14px; }
+
+  .dropzone {
+    margin-top: 32px;
+    border: 1.5px dashed var(--rule-strong);
+    border-radius: var(--radius);
+    background: var(--paper);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .dropzone:hover, .dropzone.dragover { border-color: var(--accent-line); }
+  .dropzone .pick { font-weight: 600; color: var(--accent-line); text-decoration: underline; }
+  .dropzone .hint { color: var(--ink-faint); font-size: 13px; margin-top: 10px; }
+  #fileInput { display: none; }
+
+  .note-row { margin-top: 22px; display: flex; gap: 10px; font-size: 13px; color: var(--ink-faint); align-items: flex-start; }
+  .note-row svg { flex: none; margin-top: 2px; }
+
+  .status-line { margin-top: 20px; font-size: 14px; color: var(--ink-soft); display: none; }
+  .status-line.show { display: block; }
+  .status-line.error { color: var(--accent-owe); font-weight: 500; }
+
+  /* ---------- Confirm panel ---------- */
+  #confirm { display: none; margin-top: 28px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--paper); padding: 22px 24px; }
+  #confirm.show { display: block; }
+  #confirm h3 { font-size: 15px; color: var(--ink-soft); font-weight: 600; }
+  .confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; margin-top: 14px; }
+  .field-label { font-size: 12px; color: var(--ink-faint); margin-bottom: 4px; }
+  .field-value { font-size: 15px; }
+  select, .btn {
+    font-family: inherit; font-size: 14px;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+    background: #fff; color: var(--ink);
+    padding: 8px 10px;
+  }
+  :root[data-theme="dark"] select, :root:not([data-theme="light"]) select { background: var(--paper); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) select { background: var(--paper); } }
+
+  .btn { background: var(--navy); color: #fff; border-color: var(--navy); cursor: pointer; font-weight: 600; padding: 11px 20px; }
+  .btn:hover { opacity: 0.88; }
+  .btn.secondary { background: transparent; color: var(--ink); border-color: var(--rule-strong); font-weight: 500; }
+  .confirm-actions { margin-top: 20px; display: flex; gap: 10px; align-items: center; }
+  .confirm-warn { font-size: 13px; color: var(--accent-owe); margin-top: 10px; }
+  .confirm-hint { font-size: 12px; color: var(--ink-faint); margin-top: 10px; line-height: 1.5; }
+  .cutoff-field { display: flex; align-items: center; gap: 8px; }
+  .cutoff-field input {
+    font-family: inherit; font-size: 14px; width: 64px;
+    border: 1px solid var(--rule-strong); border-radius: var(--radius);
+    background: #fff; color: var(--ink); padding: 8px 10px;
+  }
+  :root[data-theme="dark"] .cutoff-field input, :root:not([data-theme="light"]) .cutoff-field input { background: var(--paper); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cutoff-field input { background: var(--paper); } }
+  .cutoff-field span { font-size: 13px; color: var(--ink-soft); }
+
+  /* ---------- Report (dense, print-first) ---------- */
+  #report { display: none; }
+  #report.show {
+    display: block;
+    background: var(--paper);
+    padding: 26px 30px 30px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    font-size: 12px;
+  }
+
+  .report-header { margin-bottom: 10px; }
+  .report-header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .report-header h1 { font-size: 20px; }
+  .report-header .taxpayer { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+  .report-header .stat-line {
+    font-size: 12px; color: var(--ink); margin-top: 8px;
+    padding-top: 8px; border-top: 2px solid var(--ink);
+  }
+  .report-header .stat-line b { font-weight: 700; }
+  .report-actions { display: flex; gap: 8px; }
+  .report-actions .btn { padding: 6px 12px; font-size: 12px; }
+
+  .report-section { break-inside: avoid; page-break-inside: avoid; margin-top: 16px; }
+  .report-section h2 { font-size: 13.5px; color: var(--navy); }
+  .report-section .sec-desc { color: var(--ink-faint); font-size: 10.5px; margin-top: 1px; margin-bottom: 6px; max-width: 90ch; }
+
+  .sec-body { display: flex; gap: 16px; align-items: center; }
+  .sec-body .table-col { flex: 1 1 auto; min-width: 0; }
+  .sec-body .chart-col { flex: 0 0 auto; }
+  @media (max-width: 640px) { .sec-body { flex-direction: column; } }
+
+  table.datatable { border-collapse: collapse; width: 100%; font-size: 11.5px; }
+  table.datatable thead th {
+    text-align: left; font-weight: 700; color: #fff;
+    background: var(--navy);
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+  table.datatable td {
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  table.datatable tbody tr:nth-child(odd) { background: var(--paper-raised); }
+  table.datatable td.num, table.datatable th.num { text-align: right; font-family: 'IBM Plex Mono', monospace; }
+  table.datatable tr.total td { font-weight: 700; background: var(--paper-raised); border-top: 1.5px solid var(--ink-soft); }
+  table.datatable .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  table.compact-kv td:first-child { color: var(--ink); }
+  table.compact-kv td.num { font-weight: 600; }
+
+  .chart-wrap { display: flex; justify-content: center; align-items: center; }
+  .chart-empty { color: var(--ink-faint); font-size: 12px; }
+
+  .pie-label-inside tspan { fill: #fff; font-size: 7.6px; font-family: 'IBM Plex Sans'; }
+  .pie-label-inside tspan:first-child { font-weight: 700; }
+  .pie-label-outside { font-size: 7.6px; fill: var(--ink); font-family: 'IBM Plex Sans'; font-weight: 600; }
+  .pie-label-outside .amt { fill: var(--ink-soft); font-weight: 500; }
+  .pie-leader { stroke: var(--ink-faint); stroke-width: 0.75; fill: none; }
+
+  .footnote { font-size: 10px; color: var(--ink-faint); margin-top: 4px; }
+
+  .back-link { display: inline-block; margin-top: 6px; font-size: 13px; color: var(--ink-faint); cursor: pointer; text-decoration: underline; background: none; border: none; padding: 0; font-family: inherit; }
+
+  @media print {
+    body { background: #fff; }
+    .no-print { display: none !important; }
+    #app { max-width: 100%; padding: 0; }
+    #report.show { border: none; padding: 0; }
+    .report-section { break-inside: avoid; }
+    @page { size: letter; margin: 0.5in; }
+  }
+</style>
+
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ INTAKE ============ -->
+  <div id="intake">
+    <div class="eyebrow">Tax years 2020–2025 · Form 1040 or 1040-SR</div>
+    <h1>Turn your filed 1040 into a one-page summary</h1>
+    <p class="lede">Upload the PDF of your filed federal tax return. This reads your income mix, capital-gains tax layers, bracket breakdown, and payment schedule, then lays it out as a single printable report.</p>
+
+    <div class="dropzone" id="dropzone">
+      <div><span class="pick">Choose a PDF</span> or drag it here</div>
+      <div class="hint">Your TurboTax / IRS e-file PDF (Form 1040 or 1040-SR + worksheets)</div>
+      <input type="file" id="fileInput" accept="application/pdf">
+    </div>
+
+    <div class="note-row">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg>
+      <span>Everything happens in your browser. The PDF is never uploaded anywhere — parsing runs locally with pdf.js.</span>
+    </div>
+
+    <div class="status-line" id="statusLine"></div>
+
+    <div id="confirm">
+      <h3>Here's what was found</h3>
+      <div class="confirm-grid">
+        <div>
+          <div class="field-label">Tax year</div>
+          <div class="field-value mono" id="cfYear">—</div>
+        </div>
+        <div>
+          <div class="field-label">Filing status <span id="cfStatusFlag"></span></div>
+          <select id="cfStatus">
+            <option value="single">Single</option>
+            <option value="mfj">Married Filing Jointly</option>
+            <option value="mfs">Married Filing Separately</option>
+            <option value="hoh">Head of Household</option>
+            <option value="qss">Qualifying Surviving Spouse</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">Income breakdown cutoff</div>
+          <div class="cutoff-field"><input type="number" id="cfCutoff" value="5" min="0" max="50" step="0.5"><span>% of total income</span></div>
+        </div>
+      </div>
+      <div class="confirm-hint">Income types below this share of total income are grouped into a single "Other Income" line, so the table and chart don't get cluttered with minor items.</div>
+      <div class="confirm-warn" id="confirmWarn" style="display:none;"></div>
+      <div class="confirm-actions">
+        <button class="btn" id="generateBtn">Generate report</button>
+        <button class="btn secondary" id="cancelBtn">Choose a different file</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ REPORT ============ -->
+  <div id="report"></div>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =====================================================================
+   CONFIG — reference tax data (independent of any uploaded return)
+   ===================================================================== */
+const MIN_YEAR = 2020, MAX_YEAR = 2025;
+
+// Ordinary federal income tax brackets, 2020-2025, all filing statuses.
+// Source: Tax Foundation historical rates & brackets table, cross-checked
+// against IRS Rev. Proc. figures reported by multiple outlets.
+const BRACKET_TABLE = {
+  2025: {
+    single: [[0,0.10],[11925,0.12],[48475,0.22],[103350,0.24],[197300,0.32],[250525,0.35],[626350,0.37]],
+    mfs:    [[0,0.10],[11925,0.12],[48475,0.22],[103350,0.24],[197300,0.32],[250525,0.35],[375800,0.37]],
+    mfj:    [[0,0.10],[23850,0.12],[96950,0.22],[206700,0.24],[394600,0.32],[501050,0.35],[751600,0.37]],
+    hoh:    [[0,0.10],[17000,0.12],[64850,0.22],[103350,0.24],[197300,0.32],[250500,0.35],[626350,0.37]],
+  },
+  2024: {
+    single: [[0,0.10],[11600,0.12],[47150,0.22],[100525,0.24],[191950,0.32],[243725,0.35],[609350,0.37]],
+    mfs:    [[0,0.10],[11600,0.12],[47150,0.22],[100525,0.24],[191950,0.32],[243725,0.35],[365600,0.37]],
+    mfj:    [[0,0.10],[23200,0.12],[94300,0.22],[201050,0.24],[383900,0.32],[487450,0.35],[731200,0.37]],
+    hoh:    [[0,0.10],[16550,0.12],[63100,0.22],[100500,0.24],[191950,0.32],[243700,0.35],[609350,0.37]],
+  },
+  2023: {
+    single: [[0,0.10],[11000,0.12],[44725,0.22],[95375,0.24],[182100,0.32],[231250,0.35],[578125,0.37]],
+    mfs:    [[0,0.10],[11000,0.12],[44725,0.22],[95375,0.24],[182100,0.32],[231250,0.35],[346875,0.37]],
+    mfj:    [[0,0.10],[22000,0.12],[89450,0.22],[190750,0.24],[364200,0.32],[462500,0.35],[693750,0.37]],
+    hoh:    [[0,0.10],[15700,0.12],[59850,0.22],[95350,0.24],[182100,0.32],[231250,0.35],[578100,0.37]],
+  },
+  2022: {
+    single: [[0,0.10],[10275,0.12],[41775,0.22],[89075,0.24],[170050,0.32],[215950,0.35],[539900,0.37]],
+    mfs:    [[0,0.10],[10275,0.12],[41775,0.22],[89075,0.24],[170050,0.32],[215950,0.35],[323925,0.37]],
+    mfj:    [[0,0.10],[20550,0.12],[83550,0.22],[178150,0.24],[340100,0.32],[431900,0.35],[647850,0.37]],
+    hoh:    [[0,0.10],[14650,0.12],[55900,0.22],[89050,0.24],[170050,0.32],[215950,0.35],[539900,0.37]],
+  },
+  2021: {
+    single: [[0,0.10],[9950,0.12],[40525,0.22],[86375,0.24],[164925,0.32],[209425,0.35],[523600,0.37]],
+    mfs:    [[0,0.10],[9950,0.12],[40525,0.22],[86375,0.24],[164925,0.32],[209425,0.35],[314150,0.37]],
+    mfj:    [[0,0.10],[19900,0.12],[81050,0.22],[172750,0.24],[329850,0.32],[418850,0.35],[628301,0.37]],
+    hoh:    [[0,0.10],[14200,0.12],[54200,0.22],[86350,0.24],[164900,0.32],[209400,0.35],[523600,0.37]],
+  },
+  2020: {
+    single: [[0,0.10],[9875,0.12],[40125,0.22],[85525,0.24],[163300,0.32],[207350,0.35],[518400,0.37]],
+    mfs:    [[0,0.10],[9875,0.12],[40125,0.22],[85525,0.24],[163300,0.32],[207350,0.35],[311025,0.37]],
+    mfj:    [[0,0.10],[19750,0.12],[80250,0.22],[171050,0.24],[326600,0.32],[414700,0.35],[622050,0.37]],
+    hoh:    [[0,0.10],[14100,0.12],[53700,0.22],[85500,0.24],[163300,0.32],[207350,0.35],[518400,0.37]],
+  },
+};
+for (const y of Object.keys(BRACKET_TABLE)) BRACKET_TABLE[y].qss = BRACKET_TABLE[y].mfj;
+
+// Standard deduction, 2020-2025, used only to help infer filing status
+// (flattened e-file PDFs don't expose which checkbox is filled).
+const STD_DEDUCTION = {
+  2020: {single:12400, mfs:12400, mfj:24800, qss:24800, hoh:18650},
+  2021: {single:12550, mfs:12550, mfj:25100, qss:25100, hoh:18800},
+  2022: {single:12950, mfs:12950, mfj:25900, qss:25900, hoh:19400},
+  2023: {single:13850, mfs:13850, mfj:27700, qss:27700, hoh:20800},
+  2024: {single:14600, mfs:14600, mfj:29200, qss:29200, hoh:21900},
+  2025: {single:15750, mfs:15750, mfj:31500, qss:31500, hoh:23625},
+};
+
+// Additional standard deduction per box checked for age 65+/blindness (IRC
+// §63(f)). A filer can check up to 4 such boxes (self age, self blind,
+// spouse age, spouse blind), each adding this per-status amount on top of
+// the base STD_DEDUCTION above — so the deduction actually printed on a
+// return is very often base + n*addl rather than the bare base amount,
+// especially on Form 1040-SR, which exists specifically for age-65+
+// filers. "single"/"hoh" share one rate; "mfj"/"mfs"/"qss" share the other.
+const ADDL_DEDUCTION = {
+  2020: {solo:1650, married:1300},
+  2021: {solo:1700, married:1350},
+  2022: {solo:1750, married:1400},
+  2023: {solo:1850, married:1500},
+  2024: {solo:1950, married:1550},
+  2025: {solo:2000, married:1600},
+};
+
+const STATUS_LABEL = {
+  single: 'Single', mfj: 'Married Filing Jointly', mfs: 'Married Filing Separately',
+  hoh: 'Head of Household', qss: 'Qualifying Surviving Spouse', unknown: 'Unknown'
+};
+
+/* =====================================================================
+   PDF TEXT EXTRACTION — reconstruct reading order from pdf.js items
+   ===================================================================== */
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+async function extractPdfText(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let fullText = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const items = content.items
+      .map(it => ({ str: it.str, x: it.transform[4], y: it.transform[5] }))
+      .filter(it => it.str.trim().length > 0);
+    items.sort((a, b) => (b.y - a.y) || (a.x - b.x));
+    // Group into visual lines using a ROLLING tolerance (compare each item
+    // to the previous item's y, not a fixed line anchor). These e-file PDFs
+    // sometimes place a stray margin note at a y-coordinate that sits
+    // between two real rows (e.g. a "Attach Sch. B if required." aside
+    // between the interest and dividends lines); a fixed anchor lets that
+    // single stray item silently bridge two unrelated rows into one and,
+    // worse, split a label from its own entered value. A rolling
+    // comparison with a tight tolerance breaks on both sides of the
+    // intruder instead, keeping label+value pairs (which differ by only a
+    // fraction of a point, from font-baseline differences) together.
+    const TOL = 2.0;
+    const lines = [];
+    let curLine = [], prevY = null;
+    for (const it of items) {
+      if (prevY === null || Math.abs(it.y - prevY) <= TOL) {
+        curLine.push(it);
+      } else {
+        lines.push(curLine);
+        curLine = [it];
+      }
+      prevY = it.y;
+    }
+    if (curLine.length) lines.push(curLine);
+    for (const line of lines) {
+      line.sort((a, b) => a.x - b.x);
+      fullText += line.map(it => it.str).join(' ') + '\n';
+    }
+    fullText += '\n\f\n';
+  }
+  return fullText;
+}
+
+/* =====================================================================
+   PARSING — anchor-phrase regexes against stable IRS boilerplate text.
+   Generic across any 1040 PDF; nothing here is specific to one return.
+   ===================================================================== */
+function toNumber(s) {
+  if (s === undefined || s === null) return null;
+  const neg = /^\(.*\)$/.test(String(s).trim());
+  const n = parseFloat(String(s).replace(/[,$()\s]/g, ''));
+  if (isNaN(n)) return null;
+  return neg ? -n : n;
+}
+
+function findAfter(text, anchorRe, valueRe, windowSize) {
+  const m = anchorRe.exec(text);
+  if (!m) return null;
+  const start = m.index + m[0].length;
+  const win = text.slice(start, start + (windowSize || 250));
+  const vm = valueRe.exec(win);
+  if (!vm) return null;
+  return vm[1];
+}
+
+// Build a whitespace-tolerant regex from a plain phrase. These e-file PDFs
+// often draw a line's words as separate text runs with extra literal space
+// characters used for visual alignment (dot leaders, column padding), so a
+// literal single-space anchor frequently fails even though the words are
+// exactly where you'd expect. flex() escapes regex metacharacters and turns
+// every run of whitespace in the phrase into "one or more whitespace".
+function flex(phrase) {
+  return phrase
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\s+/g, '\\s+');
+}
+function flexRe(phrase, flags) { return new RegExp(flex(phrase), flags); }
+
+function parseReturn(text) {
+  const r = {};
+
+  // Form 1040-SR (seniors) shares the exact same line numbering as the
+  // standard 1040, just a different masthead — "1040-SR ... Tax Return for
+  // Seniors" instead of "1040 ... Individual Income Tax Return" — so only
+  // the year-detection anchor needs to branch; every line-item regex below
+  // this point already works unchanged on either form.
+  let m = /1040(?:-SR)?\s+U\.S\.\s+(?:Individual Income Tax Return|Tax Return for Seniors)\s+(\d{4})/.exec(text);
+  if (!m) m = /Form\s*1040(?:-SR)?\s*\((\d{4})\)/.exec(text);
+  r.taxYear = m ? parseInt(m[1], 10) : null;
+
+  r.deduction = toNumber(findAfter(text,
+    flexRe('Standard deduction or itemized deductions'),
+    /12e?\s+([\d,]+)\s*\./, 250));
+
+  const spouseAnchorRe = /Spouse['\u2019]s\s+social\s+security\s+number/;
+  r.hasSpouse = new RegExp(spouseAnchorRe.source + '[\\s\\S]{0,400}?(\\d{3}\\s+\\d{2}\\s+\\d{4})').test(text);
+
+  // Filing status, straight from the checkbox row at the top of Form 1040
+  // page 1. Most e-file PDFs draw the selected box's mark as vector
+  // graphics (invisible to text extraction), so this only succeeds when
+  // the generator instead renders the mark as a real "X" character; when
+  // it doesn't, determineFilingStatus() below falls back to inference.
+  r.filingStatusFromCheckbox = detectFilingStatusCheckbox(text);
+
+  r.qualDividends = toNumber(findAfter(text, flexRe('Qualified dividends'), /3a\s+(-?[\d,]+)\s*\./, 300));
+  r.ordDividends  = toNumber(findAfter(text, new RegExp(flex('Qualified dividends') + '[\\s\\S]*?' + flex('Ordinary dividends')), /3b\s+(-?[\d,]+)\s*\./, 300));
+  r.iraDistributions = toNumber(findAfter(text, flexRe('IRA distributions'), /4b\s+(-?[\d,]+)\s*\./, 300));
+
+  // Other Form 1040 income lines (1z, 2b, 5b, 6b, 7/7a, 8) — together with
+  // 3b and 4b above, these are exactly the addends IRS Form 1040 line 9
+  // sums to "total income" ("Add lines 1z, 2b, 3b, 4b, 5b, 6b, 7[a], and
+  // 8"), so capturing all of them lets the income-breakdown table and
+  // chart account for the full return rather than only dividends/IRA.
+  // Line 7 is labeled "7" on some years' forms and "7a" on others (a "7b"
+  // checkbox was added in later revisions), so the value regex accepts
+  // either.
+  r.wages = toNumber(findAfter(text, flexRe('Add lines 1a through 1h'), /1z\s+(-?[\d,]+)\s*\./, 200));
+  r.taxableInterest = toNumber(findAfter(text, flexRe('Taxable interest'), /2b\s+(-?[\d,]+)\s*\./, 120));
+  r.pensions = toNumber(findAfter(text, flexRe('Pensions and annuities'), /5b\s+(-?[\d,]+)\s*\./, 200));
+  r.socSecTaxable = toNumber(findAfter(text, flexRe('Social security benefits'), /6b\s+(-?[\d,]+)\s*\./, 200));
+  r.capGain = toNumber(findAfter(text, flexRe('Capital gain or (loss)'), /7a?\s+(-?[\d,]+)\s*\./, 250));
+
+  // Schedule 1, Part I ("Additional Income") individually, rather than one
+  // generic "Schedule 1, line 8" bucket: Form 1040 line 8 is really just
+  // Schedule 1 line 10, a grand total that can be driven by any of lines
+  // 1-7 or 9 (state refunds, alimony, business income, other gains/losses,
+  // rental/royalty/partnership income, farm income, unemployment, or the
+  // 8a-8z "other income" catch-all) — attributing the whole amount to
+  // "line 8" mislabels it whenever the total actually came from a
+  // different line (e.g. rental income via line 5). Scoped to start at
+  // Schedule 1's own header so its generic line-number phrasing ("1",
+  // "3", "5", "7"...) can't collide with an earlier, unrelated part of
+  // the document.
+  const sch1HeaderM = flexRe('Additional Income and Adjustments to Income').exec(text);
+  const sch1Text = sch1HeaderM ? text.slice(sch1HeaderM.index) : text;
+  r.sch1Refund   = toNumber(findAfter(sch1Text, flexRe('Taxable refunds, credits, or offsets of state and local income taxes'), /1\s+(-?[\d,]+)\s*\./, 150));
+  r.sch1Alimony  = toNumber(findAfter(sch1Text, flexRe('Alimony received'), /2a\s+(-?[\d,]+)\s*\./, 150));
+  r.sch1Business = toNumber(findAfter(sch1Text, flexRe('Business income or (loss). Attach Schedule C'), /3\s+(-?[\d,]+)\s*\./, 150));
+  r.sch1Gains    = toNumber(findAfter(sch1Text, flexRe('Other gains or (losses)'), /4\s+(-?[\d,]+)\s*\./, 150));
+  r.sch1Rental   = toNumber(findAfter(sch1Text, flexRe('Rental real estate, royalties, partnerships'), /5\s+(-?[\d,]+)\s*\./, 150));
+  r.sch1Farm     = toNumber(findAfter(sch1Text, flexRe('Farm income or (loss)'), /6\s+(-?[\d,]+)\s*\./, 150));
+  r.sch1Unemployment = toNumber(findAfter(sch1Text, flexRe('Unemployment compensation'), /7\s+(-?[\d,]+)\s*\./, 150));
+
+  // Schedule 1 line 8 ("Other income") is itself a list of ~20 named
+  // sub-items (8a-8z) that all roll up into one line-9 total — showing
+  // just that total mislabels whatever actually produced it (e.g. a
+  // student's taxable scholarship shows up as generic "other income"
+  // instead of "Scholarship & Fellowship Grants"). Parsed individually so
+  // the real source is named; only the sub-items actually present on a
+  // given return end up nonzero. Three of them (8a, 8d, 8s) are printed
+  // in parentheses because they're subtracted from the line-8 total
+  // rather than added, so their value regex accepts an optional
+  // wrapping "( )" and the result is negated.
+  const SCH1_LINE8_ITEMS = [
+    { code: 'a', label: 'Net Operating Loss (Schedule 1, line 8a)', shortLabel: 'Net Op. Loss', anchor: 'Net operating loss', negate: true },
+    { code: 'b', label: 'Gambling Income (Schedule 1, line 8b)', shortLabel: 'Gambling', anchor: 'Gambling' },
+    { code: 'c', label: 'Cancellation of Debt (Schedule 1, line 8c)', shortLabel: 'Cancel. of Debt', anchor: 'Cancellation of debt' },
+    { code: 'd', label: 'Foreign Earned Income Exclusion (Schedule 1, line 8d)', shortLabel: 'Foreign Inc. Excl.', anchor: 'Foreign earned income exclusion from Form 2555', negate: true },
+    { code: 'e', label: 'Income from Form 8853 (Schedule 1, line 8e)', shortLabel: 'Form 8853', anchor: 'Income from Form 8853' },
+    { code: 'f', label: 'Income from Form 8889 (Schedule 1, line 8f)', shortLabel: 'Form 8889', anchor: 'Income from Form 8889' },
+    { code: 'g', label: 'Alaska Permanent Fund Dividends (Schedule 1, line 8g)', shortLabel: 'Alaska PFD', anchor: 'Alaska Permanent Fund dividends' },
+    { code: 'h', label: 'Jury Duty Pay (Schedule 1, line 8h)', shortLabel: 'Jury Duty', anchor: 'Jury duty pay' },
+    { code: 'i', label: 'Prizes and Awards (Schedule 1, line 8i)', shortLabel: 'Prizes/Awards', anchor: 'Prizes and awards' },
+    { code: 'j', label: 'Not-for-Profit Activity Income (Schedule 1, line 8j)', shortLabel: 'Not-for-Profit', anchor: 'Activity not engaged in for profit income' },
+    { code: 'k', label: 'Stock Options (Schedule 1, line 8k)', shortLabel: 'Stock Options', anchor: 'Stock options' },
+    { code: 'l', label: 'Personal Property Rental Income (Schedule 1, line 8l)', shortLabel: 'Personal Prop. Rental', anchor: 'Income from the rental of personal property' },
+    { code: 'm', label: 'Olympic/Paralympic Medals & Prize Money (Schedule 1, line 8m)', shortLabel: 'Olympic Medals', anchor: 'Olympic and Paralympic medals' },
+    { code: 'n', label: 'Section 951(a) Inclusion (Schedule 1, line 8n)', shortLabel: 'Sec. 951(a)', anchor: 'Section 951(a) inclusion' },
+    { code: 'o', label: 'Section 951A(a) Inclusion (Schedule 1, line 8o)', shortLabel: 'Sec. 951A(a)', anchor: 'Section 951A(a) inclusion' },
+    { code: 'p', label: 'Section 461(l) Excess Business Loss Adjustment (Schedule 1, line 8p)', shortLabel: 'Sec. 461(l)', anchor: 'Section 461(l) excess business loss adjustment' },
+    { code: 'q', label: 'Taxable ABLE Account Distributions (Schedule 1, line 8q)', shortLabel: 'ABLE Acct.', anchor: 'Taxable distributions from an ABLE account' },
+    { code: 'r', label: 'Scholarship & Fellowship Grants (Schedule 1, line 8r)', shortLabel: 'Scholarship', anchor: 'Scholarship and fellowship grants not reported on Form W-2' },
+    { code: 's', label: 'Nontaxable Medicaid Waiver Payments (Schedule 1, line 8s)', shortLabel: 'Medicaid Waiver', anchor: 'Nontaxable amount of Medicaid waiver payments', negate: true },
+    { code: 't', label: 'Nonqualified Deferred Comp. / 457 Plan Income (Schedule 1, line 8t)', shortLabel: 'Deferred Comp.', anchor: 'Pension or annuity from a nonqualifed deferred compensation plan' },
+    { code: 'u', label: 'Wages Earned While Incarcerated (Schedule 1, line 8u)', shortLabel: 'Incarcerated Wages', anchor: 'Wages earned while incarcerated' },
+    { code: 'v', label: 'Digital Assets Received as Ordinary Income (Schedule 1, line 8v)', shortLabel: 'Digital Assets', anchor: 'Digital assets received as ordinary income' },
+    { code: 'z', label: 'Other Income (Schedule 1, line 8z)', shortLabel: 'Sch. 1, 8z Other', anchor: 'Other income. List type and amount' },
+  ];
+  r.sch1Line8Items = [];
+  SCH1_LINE8_ITEMS.forEach(item => {
+    const valueRe = item.negate
+      ? new RegExp('8' + item.code + '\\s*\\(\\s*(-?[\\d,]+)\\s*\\)')
+      : new RegExp('8' + item.code + '\\s+(-?[\\d,]+)\\s*\\.');
+    let val = toNumber(findAfter(sch1Text, flexRe(item.anchor), valueRe, 150));
+    if (val != null && item.negate) val = -Math.abs(val);
+    if (val != null && val !== 0) {
+      r.sch1Line8Items.push({ label: item.label, shortLabel: item.shortLabel, value: val });
+    }
+  });
+  // Kept only as a sanity check when rendering (not shown directly): the
+  // sum of the parsed sub-items above should match this reported total.
+  r.sch1OtherIncomeTotal = toNumber(findAfter(sch1Text, flexRe('Total other income. Add lines 8a through 8z'), /9\s+(-?[\d,]+)\s*\./, 150));
+
+  // Schedule A (Itemized Deductions), scoped to its own header for the
+  // same reason as Schedule 1 above. Only used when the return actually
+  // itemizes (detected later by comparing r.deduction against the
+  // standard-deduction formula) — parsed speculatively here regardless,
+  // since that comparison needs r.deduction, which isn't set yet at this
+  // point in parseReturn.
+  const schAHeaderM = flexRe('Itemized Deductions').exec(text);
+  const schAText = schAHeaderM ? text.slice(schAHeaderM.index) : null;
+  if (schAText) {
+    r.schA_medical = toNumber(findAfter(schAText, flexRe('Subtract line 3 from line 1. If zero or less, enter -0-'), /4\s+(-?[\d,]+)\s*\./, 150));
+    r.schA_taxes = toNumber(findAfter(schAText, flexRe('Add lines 5e and 6'), /7\s+(-?[\d,]+)\s*\./, 150));
+    r.schA_interest = toNumber(findAfter(schAText, new RegExp(flex('Interest You Paid') + '[\\s\\S]*?' + flex('Add lines 8e and 9')), /10\s+(-?[\d,]+)\s*\./, 150));
+    r.schA_charity = toNumber(findAfter(schAText, flexRe('Gifts to Charity'), /14\s+(-?[\d,]+)\s*\./, 400));
+    r.schA_casualty = toNumber(findAfter(schAText, flexRe('Casualty and Theft Losses'), /15\s+(-?[\d,]+)\s*\./, 250));
+    r.schA_other = toNumber(findAfter(schAText, flexRe('Other Itemized Deductions'), /16\s+(-?[\d,]+)\s*\./, 250));
+  }
+
+  // Total income (line 9): try a couple of anchor phrasings since exact
+  // enumeration text ("...7," vs "...7a,") shifts slightly by year, and the
+  // words right before the line-9 value ("total income") are sometimes
+  // separated from the rest of the sentence by extra alignment spaces.
+  r.totalIncome = toNumber(findAfter(text, flexRe('This is your total income'), /9\s+(-?[\d,]+)\s*\./, 300));
+  if (r.totalIncome == null) {
+    r.totalIncome = toNumber(findAfter(text, flexRe('Add lines 1z, 2b, 3b, 4b, 5b, 6b'), /9\s+(-?[\d,]+)\s*\./, 300));
+  }
+  if (r.totalIncome == null) {
+    r.totalIncome = toNumber(findAfter(text, flexRe('total income'), /9\s+(-?[\d,]+)\s*\./, 200));
+  }
+
+  // Qualified Dividends and Capital Gain Tax Worksheet. Scoped to start at
+  // the worksheet's own header rather than searching the whole document:
+  // Schedule 1-A's tips/overtime deduction parts (new for 2025) reuse very
+  // similar generic "Subtract line X from line Y ... enter -0-" boilerplate
+  // and appear earlier in the document, so an unscoped search can lock
+  // onto the wrong worksheet's line 5 (or beyond).
+  const qdHeaderM = flexRe('Qualified Dividends and Capital Gain Tax Worksheet').exec(text);
+  const qdText = qdHeaderM ? text.slice(qdHeaderM.index) : text;
+  r.qd_line1  = toNumber(findAfter(qdText, flexRe('Enter the amount from Form 1040 or 1040-SR, line 15'), /1\s+(-?[\d,]+)\s*\./, 150));
+  r.qd_line5  = toNumber(findAfter(qdText, flexRe('Subtract line 4 from line 1. If zero or less, enter -0-'), /5\s+(-?[\d,]+)\s*\./, 150));
+  r.qd_line17 = toNumber(findAfter(qdText, flexRe('Enter the smaller of line 12 or line 16'), /17\s+(-?[\d,]+)\s*\./, 150));
+  r.qd_line18 = toNumber(findAfter(qdText, flexRe('Multiply line 17 by 15'), /%[\s\S]{0,20}?18\s+(-?[\d,]+)\s*\./, 150));
+  r.qd_line20 = toNumber(findAfter(qdText, flexRe('Subtract line 19 from line 10'), /20\s+(-?[\d,]+)\s*\./, 150));
+  r.qd_line21 = toNumber(findAfter(qdText, flexRe('Multiply line 20 by 20'), /%[\s\S]{0,20}?21\s+(-?[\d,]+)\s*\./, 150));
+  r.qd_line22 = toNumber(findAfter(qdText, flexRe('Figure the tax on the amount on line 5.'), /22\s+(-?[\d,]+)\s*\./, 350));
+  r.qd_line25 = toNumber(findAfter(qdText, flexRe('Tax on all taxable income.'), /25\s+(-?[\d,]+)\s*\./, 350));
+
+  r.niit = toNumber(findAfter(text, flexRe('Net investment income tax. Attach Form 8960'), /12\s+(-?[\d,]+)\s*\./, 300));
+  r.ftc  = toNumber(findAfter(text, flexRe('Foreign tax credit. Attach Form 1116'), /1\s+(-?[\d,]+)\s*\./, 300));
+
+  const reqStr = findAfter(text, flexRe('For fiscal year filers, see instructions'), /10\s+([\d,.\s]+?)\n/, 250);
+  if (reqStr) r.required2210 = reqStr.trim().split(/\s+/).map(toNumber);
+
+  const estStr = findAfter(text, flexRe('checked a box in Part II'), /11\s+([\d,.\s]+?)\n/, 250);
+  if (estStr) r.estimated2210 = estStr.trim().split(/\s+/).map(toNumber);
+
+  r.refund = toNumber(findAfter(text, flexRe('If line 33 is more than line 24, subtract line 24 from line 33'), /[\s\S]{0,120}?34\s+(-?[\d,]+)\s*\./, 250));
+  r.owed   = toNumber(findAfter(text, flexRe('Subtract line 33 from line 24'), /[\s\S]{0,250}?37\s+(-?[\d,]+)\s*\./, 350));
+
+  r.agi = toNumber(findAfter(text, flexRe('Subtract line 10 from line 9'), /11a?\s+(-?[\d,]+)\s*\./, 200));
+  r.taxableIncome = toNumber(findAfter(text, flexRe('Subtract line 14 from line 11'), /15\s+(-?[\d,]+)\s*\./, 250));
+  r.totalTax = toNumber(findAfter(text, flexRe('Add lines 22 and 23. This is your total tax'), /24\s+(-?[\d,]+)\s*\./, 150));
+
+  // Taxpayer name, for the report header. Best-effort only — if this
+  // shifts in some other software's PDF, the report still works, just
+  // without a name line. The SSN itself is intentionally never parsed.
+  const nameM = new RegExp(flex('Your first name and middle initial Last name Your social security number') + '\\s*([A-Za-z][A-Za-z .\\-\']*?)\\s+\\d{3}\\s+\\d{2}\\s+\\d{4}').exec(text);
+  r.taxpayerName = nameM ? nameM[1].trim() : null;
+
+  return r;
+}
+
+// Look for a literal "X" mark next to one of the filing-status labels on
+// Form 1040 page 1. Works only when the PDF generator renders the checked
+// box as real text (some do; many, including TurboTax's flattened e-file
+// PDFs, draw it as a vector mark that leaves no text trace at all).
+function detectFilingStatusCheckbox(text) {
+  const anchor = flexRe('Filing Status').exec(text);
+  if (!anchor) return null;
+  const window = text.slice(anchor.index, anchor.index + 700);
+  const labels = [
+    { key: 'single', re: /\bSingle\b/ },
+    { key: 'mfj', re: flexRe('Married filing jointly') },
+    { key: 'mfs', re: flexRe('Married filing separately') },
+    { key: 'hoh', re: flexRe('Head of household') },
+    { key: 'qss', re: flexRe('Qualifying surviving spouse') },
+  ];
+  const labelHits = labels
+    .map(l => ({ key: l.key, idx: (l.re.exec(window) || {}).index }))
+    .filter(l => l.idx !== undefined);
+  if (!labelHits.length) return null;
+
+  // A standalone "X" token, not part of a word like "MFS" or "Tax".
+  const xRe = /(?:^|[\s(])X(?:[\s).]|$)/g;
+  let xm, xHits = [];
+  while ((xm = xRe.exec(window))) xHits.push(xm.index + xm[0].indexOf('X'));
+  if (!xHits.length) return null;
+
+  // Assign each X to its nearest label; keep it only if exactly one label
+  // ends up marked (an ambiguous or multi-mark result isn't trustworthy).
+  const marked = new Set();
+  for (const xi of xHits) {
+    let best = null, bestDist = Infinity;
+    for (const l of labelHits) {
+      const d = Math.abs(l.idx - xi);
+      if (d < bestDist) { bestDist = d; best = l.key; }
+    }
+    if (best !== null && bestDist < 60) marked.add(best);
+  }
+  return marked.size === 1 ? [...marked][0] : null;
+}
+
+function determineFilingStatus(r) {
+  if (r.filingStatusFromCheckbox) return r.filingStatusFromCheckbox;
+  const table = STD_DEDUCTION[r.taxYear];
+  const addl = ADDL_DEDUCTION[r.taxYear];
+  if (!table || r.deduction == null) return 'unknown';
+  // The deduction on the form is base + n * (per-box amount) for n = 0..4
+  // age/blindness boxes, not just the bare base — matching only the exact
+  // base amount misses any filer who checked a box, which on Form 1040-SR
+  // (built for age-65+ filers) is the common case rather than the
+  // exception.
+  const matchesBase = (base, rate) => {
+    if (r.deduction === base) return true;
+    if (!addl || !rate) return false;
+    const n = (r.deduction - base) / rate;
+    return n >= 1 && n <= 4 && Number.isInteger(n);
+  };
+  if (matchesBase(table.hoh, addl && addl.solo)) return 'hoh';
+  // Single and MFS share the same base deduction amount (STD_DEDUCTION has
+  // one "single" entry for both), but use different per-box increments:
+  // single/HOH use the "solo" rate, while MFS uses the "married" rate even
+  // though its base equals single's. Testing the shared base with only the
+  // solo rate silently misses every MFS filer who checked an age/blind
+  // box — disambiguated here by hasSpouse before picking which rate to
+  // try, mirroring how mfj/qss (which also share a base) are already
+  // disambiguated below.
+  if (r.hasSpouse) {
+    if (matchesBase(table.single, addl && addl.married)) return 'mfs';
+  } else {
+    if (matchesBase(table.single, addl && addl.solo)) return 'single';
+  }
+  if (matchesBase(table.mfj, addl && addl.married)) return r.hasSpouse ? 'mfj' : 'qss';
+  return 'unknown';
+}
+
+/* =====================================================================
+   DERIVED COMPUTATIONS
+   ===================================================================== */
+function computeOrdinaryBracketBreakdown(ordinaryIncome, year, status) {
+  const table = BRACKET_TABLE[year] && BRACKET_TABLE[year][status];
+  if (!table || ordinaryIncome == null) return [];
+  const rows = [];
+  for (let i = 0; i < table.length; i++) {
+    const [lower, rate] = table[i];
+    const upper = (i + 1 < table.length) ? table[i + 1][0] : Infinity;
+    const amt = Math.max(0, Math.min(ordinaryIncome, upper) - lower);
+    if (amt <= 0) break;
+    rows.push({ rate, lower, upper, amount: amt, tax: amt * rate });
+  }
+  return rows;
+}
+
+function computeIncomeBreakdown(r, cutoffFraction) {
+  const total = r.totalIncome;
+  if (total == null || total <= 0) return null;
+  const qual = r.qualDividends || 0;
+  const ordDiv = r.ordDividends || 0; // line 3b, inclusive of qualified dividends
+  const ordNonQual = Math.max(0, ordDiv - qual);
+  const ira = r.iraDistributions || 0;
+  const wages = r.wages || 0;
+  const interest = r.taxableInterest || 0;
+  const pensions = r.pensions || 0;
+  const socSec = r.socSecTaxable || 0;
+  const capGain = r.capGain || 0;
+  const sch1Refund = r.sch1Refund || 0;
+  const sch1Alimony = r.sch1Alimony || 0;
+  const sch1Business = r.sch1Business || 0;
+  const sch1Gains = r.sch1Gains || 0;
+  const sch1Rental = r.sch1Rental || 0;
+  const sch1Farm = r.sch1Farm || 0;
+  const sch1Unemployment = r.sch1Unemployment || 0;
+
+  // Individual Schedule 1 line-8 sub-items (parsed by parseReturn), each
+  // tagged with a color from a small cycling palette since real returns
+  // essentially never populate more than one or two of the ~20 possible
+  // sub-items at once. If the sub-items don't sum to the reported line-9
+  // total — an anchor didn't match, or this return has a sub-item this
+  // app doesn't parse by name yet — fall back to one generic line rather
+  // than silently under-reporting income.
+  const SCH1_8_PALETTE = ['#2E97A7', '#8B5E3C', '#A63D82', '#7A8B3C', '#3C5A99', '#C97AA0', '#5B4E8C', '#B85C7A', '#4C7A6B', '#996633'];
+  const sch1Line8Items = r.sch1Line8Items || [];
+  const sch1Line8Sum = sch1Line8Items.reduce((s, x) => s + x.value, 0);
+  const sch1Line8Rows = (r.sch1OtherIncomeTotal != null && sch1Line8Sum !== r.sch1OtherIncomeTotal)
+    ? (r.sch1OtherIncomeTotal !== 0 ? [{ label: 'Other Income (Schedule 1, line 9)', shortLabel: 'Sch. 1 Other', value: r.sch1OtherIncomeTotal, color: 'var(--c-rose)' }] : [])
+    : sch1Line8Items.map((x, i) => ({ label: x.label, shortLabel: x.shortLabel, value: x.value, color: SCH1_8_PALETTE[i % SCH1_8_PALETTE.length] }));
+
+  // Every income type on Form 1040 line 9 is evaluated the same way: shown
+  // on its own row when it's a major share of total income (>= the
+  // person's chosen cutoff, 10% by default), otherwise pooled into a
+  // single "Other Income" bucket so the table doesn't get cluttered with
+  // minor line items. Ordinary Dividends (3b) gets one exception: it's
+  // evaluated as a whole first, and only if that whole clears the cutoff
+  // does it get split into its two components (Qualified Dividends, and
+  // the remainder) rather than shown as one "Ordinary Dividends" line.
+  const OTHER_MAJOR_THRESHOLD = (cutoffFraction == null || isNaN(cutoffFraction)) ? 0.05 : cutoffFraction;
+  const candidates = [
+    { label: 'Wages (line 1z)', shortLabel: 'Wages', value: wages, color: 'var(--c-teal)' },
+    { label: 'Taxable Interest (line 2b)', shortLabel: 'Interest', value: interest, color: 'var(--c-gold)' },
+    { label: 'Ordinary Dividends (line 3b)', shortLabel: 'Ord Div', value: ordDiv, color: 'var(--c-blue)', isOrdDiv: true },
+    { label: 'IRA Distributions \u2014 Taxable (line 4b)', shortLabel: 'IRA', value: ira, color: 'var(--c-green)' },
+    { label: 'Pensions & Annuities \u2014 Taxable (line 5b)', shortLabel: 'Pensions', value: pensions, color: 'var(--c-purple)' },
+    { label: 'Social Security Benefits \u2014 Taxable (line 6b)', shortLabel: 'Soc. Sec.', value: socSec, color: 'var(--c-red)' },
+    { label: 'Capital Gain or (Loss) (line 7)', shortLabel: 'Cap Gain/Loss', value: capGain, color: 'var(--c-slate)' },
+    { label: 'Taxable State Refund (Schedule 1, line 1)', shortLabel: 'St. Refund', value: sch1Refund, color: 'var(--c-cyan)' },
+    { label: 'Alimony Received (Schedule 1, line 2a)', shortLabel: 'Alimony', value: sch1Alimony, color: 'var(--c-brown)' },
+    { label: 'Business Income or (Loss) (Schedule 1, line 3)', shortLabel: 'Business', value: sch1Business, color: 'var(--c-magenta)' },
+    { label: 'Other Gains or (Losses) (Schedule 1, line 4)', shortLabel: 'Other Gains', value: sch1Gains, color: 'var(--c-olive)' },
+    { label: 'Rental, Royalty & Partnership Income (Schedule 1, line 5)', shortLabel: 'Rental/Royalty', value: sch1Rental, color: 'var(--c-navy2)' },
+    { label: 'Farm Income or (Loss) (Schedule 1, line 6)', shortLabel: 'Farm', value: sch1Farm, color: 'var(--c-pink)' },
+    { label: 'Unemployment Compensation (Schedule 1, line 7)', shortLabel: 'Unemployment', value: sch1Unemployment, color: 'var(--c-indigo)' },
+    ...sch1Line8Rows,
+  ].filter(x => x.value !== 0);
+
+  const majorOthers = [], minorOthers = [];
+  candidates.forEach(x => {
+    const isMajor = Math.abs(x.value) / total >= OTHER_MAJOR_THRESHOLD;
+    if (x.isOrdDiv) {
+      if (isMajor) {
+        // Splitting only happens once the whole of Ordinary Dividends
+        // clears the cutoff, but each resulting piece is then subject to
+        // the same cutoff test as every other category — otherwise a
+        // small Qualified Dividends amount (say) would show as its own
+        // row even though it's under the threshold the person chose,
+        // while an equally small Wages amount would correctly get folded
+        // into "Other Income". Whichever piece doesn't clear the cutoff
+        // on its own goes into the same minor pool as everything else.
+        if (ordNonQual !== 0) {
+          const piece = { label: 'Ordinary Dividends minus Qualified Dividends (3b \u2212 3a)', shortLabel: 'Ord\u2212Qual Div', value: ordNonQual, color: 'var(--c-blue)' };
+          (Math.abs(ordNonQual) / total >= OTHER_MAJOR_THRESHOLD ? majorOthers : minorOthers).push(piece);
+        }
+        if (qual !== 0) {
+          const piece = { label: 'Qualified Dividends (line 3a)', shortLabel: 'Qual Div', value: qual, color: 'var(--c-orange)' };
+          (Math.abs(qual) / total >= OTHER_MAJOR_THRESHOLD ? majorOthers : minorOthers).push(piece);
+        }
+      } else {
+        minorOthers.push(x);
+      }
+    } else {
+      (isMajor ? majorOthers : minorOthers).push(x);
+    }
+  });
+
+  const rows = [...majorOthers];
+  if (minorOthers.length === 1) {
+    // Only one minor item on this return — nothing to combine it with, so
+    // keep its own label instead of wrapping it in a synthetic bucket.
+    rows.push(minorOthers[0]);
+  } else if (minorOthers.length > 1) {
+    const otherSum = minorOthers.reduce((s, x) => s + x.value, 0);
+    if (otherSum !== 0) {
+      rows.push({
+        label: 'Other Income (' + minorOthers.map(x => x.shortLabel).join(', ') + ')',
+        shortLabel: 'Other Income',
+        value: otherSum,
+        color: 'var(--c-other)',
+      });
+    }
+  }
+  rows.sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+
+  // A pie slice can't represent a negative share, so a net loss item (a
+  // capital loss, a negative Schedule 1 amount, or an Other Income bucket
+  // that nets negative) is shown in the table but left out of the chart;
+  // hasNegative flags that for a footnote. The chart is renormalized to
+  // just the positive slices it draws so their wedges sum to a clean
+  // 360°/100%.
+  const posRows = rows.filter(x => x.value > 0);
+  const shownSum = posRows.reduce((s, x) => s + x.value, 0);
+  const hasNegative = rows.some(x => x.value < 0);
+  return { total, shownSum, rows, posRows, hasNegative, cutoffFraction: OTHER_MAJOR_THRESHOLD };
+}
+
+// Standard vs. itemized is determined by checking whether r.deduction
+// matches the standard-deduction formula (base, or base + n age/blind
+// additions) for this filing status/year — the same check
+// determineFilingStatus uses, duplicated here since that function only
+// returns the status, not whether the match came from the standard
+// amount.
+function isStandardDeduction(r, status) {
+  const table = STD_DEDUCTION[r.taxYear];
+  const addl = ADDL_DEDUCTION[r.taxYear];
+  if (!table || r.deduction == null || !table[status]) return null;
+  const base = table[status];
+  if (r.deduction === base) return true;
+  if (!addl) return false;
+  const rate = (status === 'single' || status === 'hoh') ? addl.solo : addl.married;
+  const n = (r.deduction - base) / rate;
+  return n >= 1 && n <= 4 && Number.isInteger(n);
+}
+
+function computeDeductionBreakdown(r, status, cutoffFraction) {
+  if (r.deduction == null) return null;
+  const std = isStandardDeduction(r, status);
+  if (std) return { isStandard: true, amount: r.deduction };
+  if (std === null) return { isStandard: null, amount: r.deduction };
+
+  // Itemized. Only trust a per-category breakdown if the categories we
+  // found actually add up to the reported total — a partial or
+  // mis-anchored parse showing wrong numbers is worse than showing the
+  // verified total alone.
+  const cats = [
+    { label: 'Medical & Dental Expenses (Schedule A, line 4)', shortLabel: 'Medical', value: r.schA_medical || 0, color: 'var(--c-cyan)' },
+    { label: 'Taxes Paid \u2014 SALT (Schedule A, line 7)', shortLabel: 'Taxes Paid', value: r.schA_taxes || 0, color: 'var(--c-blue)' },
+    { label: 'Interest Paid (Schedule A, line 10)', shortLabel: 'Interest', value: r.schA_interest || 0, color: 'var(--c-green)' },
+    { label: 'Gifts to Charity (Schedule A, line 14)', shortLabel: 'Charity', value: r.schA_charity || 0, color: 'var(--c-orange)' },
+    { label: 'Casualty & Theft Losses (Schedule A, line 15)', shortLabel: 'Casualty', value: r.schA_casualty || 0, color: 'var(--c-slate)' },
+    { label: 'Other Itemized Deductions (Schedule A, line 16)', shortLabel: 'Other', value: r.schA_other || 0, color: 'var(--c-rose)' },
+  ].filter(x => x.value !== 0);
+  const sum = cats.reduce((s, x) => s + x.value, 0);
+  if (!cats.length || sum !== r.deduction) {
+    return { isStandard: false, amount: r.deduction, rows: null };
+  }
+  const total = r.deduction;
+  const threshold = (cutoffFraction == null || isNaN(cutoffFraction)) ? 0.05 : cutoffFraction;
+  const major = cats.filter(x => Math.abs(x.value) / total >= threshold);
+  const minor = cats.filter(x => Math.abs(x.value) / total < threshold);
+  const rows = [...major];
+  if (minor.length === 1) rows.push(minor[0]);
+  else if (minor.length > 1) {
+    const minorSum = minor.reduce((s, x) => s + x.value, 0);
+    if (minorSum !== 0) {
+      rows.push({ label: 'Misc. Itemized Deductions (' + minor.map(x => x.shortLabel).join(', ') + ')', shortLabel: 'Misc.', value: minorSum, color: 'var(--c-other)' });
+    }
+  }
+  rows.sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+  return { isStandard: false, amount: total, rows };
+}
+
+function computeTaxBreakdown(r) {
+  if (r.qd_line25 == null) return null;
+  const rows = [
+    { label: '15% Bracket (line 17 / line 18)', shortLabel: '15%', amount: r.qd_line17, tax: r.qd_line18, color: 'var(--c-blue)' },
+    { label: '20% Bracket (line 20 / line 21)', shortLabel: '20%', amount: r.qd_line20, tax: r.qd_line21, color: 'var(--c-orange)' },
+    { label: 'Ordinary Income (line 5 / line 22)', shortLabel: 'Ordinary', amount: r.qd_line5, tax: r.qd_line22, color: 'var(--c-green)' },
+  ].filter(x => (x.amount || 0) > 0 || (x.tax || 0) > 0);
+  return { total: r.qd_line25, rows };
+}
+
+function refundOrOwed(r) {
+  if (r.refund && r.refund > 0) return { type: 'refund', amount: r.refund };
+  if (r.owed && r.owed > 0) return { type: 'owed', amount: r.owed };
+  return { type: 'even', amount: 0 };
+}
+
+const PERIOD_RANGES = [[1,1,3,31],[4,1,5,31],[6,1,8,31],[9,1,12,31]];
+// Standard Form 2210 Part III due dates: 4/15, 6/15, 9/15 of the tax year,
+// then 1/15 of the following year.
+function period2210Dates(taxYear) {
+  const y = taxYear;
+  return {
+    ranges: PERIOD_RANGES.map(([m1,d1,m2,d2]) =>
+      `${m1}/${d1}/${y}\u2013${m2}/${d2}/${y}`),
+    deadlines: [`4/15/${y}`, `6/15/${y}`, `9/15/${y}`, `1/15/${y+1}`],
+  };
+}
+
+/* =====================================================================
+   RENDERING HELPERS
+   ===================================================================== */
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function fmtMoney(n, opts) {
+  opts = opts || {};
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  const s = Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  return (n < 0 ? '-$' : '$') + s;
+}
+function fmtPct(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return n.toFixed(1) + '%';
+}
+const SLICE_COLORS = ['var(--c-blue)','var(--c-green)','var(--c-orange)','var(--c-red)','var(--c-purple)','var(--c-teal)','var(--c-gold)'];
+
+/* ---- Pie chart: inline SVG, distinctive colors, compact 3-line labels ---- */
+function polar(cx, cy, r, angleDeg) {
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+function arcPath(cx, cy, r, a0, a1) {
+  const s = polar(cx, cy, r, a1), e = polar(cx, cy, r, a0);
+  const large = (a1 - a0) <= 180 ? '0' : '1';
+  return `M ${cx} ${cy} L ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${e.x.toFixed(2)} ${e.y.toFixed(2)} Z`;
+}
+// slices: [{label, shortLabel, value, color}]. opts.pieTotal overrides the
+// denominator used for each slice's percentage (e.g. to renormalize a pie
+// to just the slices actually shown, rather than a grand total).
+function renderPie(slices, opts) {
+  opts = opts || {};
+  const size = opts.size || 210;
+  const rawTotal = slices.reduce((s, x) => s + x.value, 0);
+  if (!(rawTotal > 0)) return '<p class="chart-empty">Not enough data to chart.</p>';
+  const pctTotal = opts.pieTotal || rawTotal;
+  const cx = size / 2, cy = size / 2, r = size * 0.34;
+  const insideR = r * 0.58, outsideR = r * 1.36;
+  const INSIDE_MIN_DEG = 32;
+  let angle = -0.0001; // tiny epsilon avoids a 0-degree seam artifact
+  let paths = '', labels = '', leaders = '';
+  // When a return has several small income sources, their outside labels
+  // can land close enough in angle to overlap (three-line label blocks are
+  // taller than the gap between adjacent thin slices). Stagger the radius
+  // outward for each outside label that lands near the previous one so the
+  // blocks fan out instead of stacking on top of each other.
+  let lastOutsideMid = null, outsideStagger = 0;
+  slices.forEach((s, i) => {
+    const pct = (s.value / pctTotal) * 100;
+    const sweep = (s.value / rawTotal) * 360;
+    const a0 = angle, a1 = angle + sweep;
+    const mid = (a0 + a1) / 2;
+    const color = s.color || SLICE_COLORS[i % SLICE_COLORS.length];
+    paths += `<path d="${arcPath(cx, cy, r, Math.max(0,a0), a1)}" fill="${color}" stroke="var(--paper)" stroke-width="1.5"></path>`;
+    const amtK = Math.round(s.value / 1000);
+    const shortLabel = s.shortLabel || s.label;
+    if (sweep >= INSIDE_MIN_DEG) {
+      const p = polar(cx, cy, insideR, mid);
+      labels += `<text x="${p.x.toFixed(1)}" y="${p.y.toFixed(1)}" class="pie-label-inside" text-anchor="middle">` +
+                `<tspan x="${p.x.toFixed(1)}" dy="-0.7em">${esc(shortLabel)}</tspan>` +
+                `<tspan x="${p.x.toFixed(1)}" dy="1em">${pct.toFixed(1)}%</tspan>` +
+                `<tspan x="${p.x.toFixed(1)}" dy="1em">$${amtK}k</tspan></text>`;
+    } else {
+      const angGap = lastOutsideMid === null ? 999 : Math.abs(((mid - lastOutsideMid + 540) % 360) - 180);
+      outsideStagger = angGap < 30 ? Math.min(outsideStagger + 1, 2) : 0;
+      lastOutsideMid = mid;
+      const thisOutsideR = outsideR + outsideStagger * 15;
+      const edgeP = polar(cx, cy, r, mid);
+      const bendP = polar(cx, cy, thisOutsideR * 0.82, mid);
+      const labelP = polar(cx, cy, thisOutsideR, mid);
+      const norm = ((mid % 360) + 360) % 360;
+      const rightSide = norm > 0 && norm < 180;
+      const anchor = rightSide ? 'start' : 'end';
+      const lx = labelP.x + (rightSide ? 3 : -3);
+      leaders += `<polyline class="pie-leader" points="${edgeP.x.toFixed(1)},${edgeP.y.toFixed(1)} ${bendP.x.toFixed(1)},${bendP.y.toFixed(1)} ${labelP.x.toFixed(1)},${labelP.y.toFixed(1)}"></polyline>`;
+      labels += `<text x="${lx.toFixed(1)}" y="${(labelP.y-6).toFixed(1)}" class="pie-label-outside" text-anchor="${anchor}">${esc(shortLabel)}</text>` +
+                `<text x="${lx.toFixed(1)}" y="${(labelP.y+3).toFixed(1)}" class="pie-label-outside amt" text-anchor="${anchor}">${pct.toFixed(1)}%</text>` +
+                `<text x="${lx.toFixed(1)}" y="${(labelP.y+12).toFixed(1)}" class="pie-label-outside amt" text-anchor="${anchor}">$${amtK}k</text>`;
+    }
+    angle = a1;
+  });
+  // Give the viewBox extra breathing room when labels were staggered
+  // outward, so a fanned-out block doesn't clip past the canvas edge.
+  const vb = size * 1.5 + outsideStagger * 30;
+  const off = (vb - size) / 2;
+  return `<svg viewBox="${-off} ${-off} ${vb} ${vb}" width="${size}" height="${size}" style="max-width:100%" role="img" aria-label="Pie chart">` +
+         `<g>${paths}${leaders}${labels}</g></svg>`;
+}
+
+/* =====================================================================
+   REPORT BUILDING
+   ===================================================================== */
+function sectionOpen(title, desc) {
+  return `<section class="report-section">
+    <h2>${esc(title)}</h2>
+    ${desc ? `<div class="sec-desc">${esc(desc)}</div>` : ''}`;
+}
+const sectionClose = '</section>';
+
+function buildReport(r, status, cutoffFraction) {
+  const statusLabel = STATUS_LABEL[status] || 'Unknown';
+  let html = '';
+
+  const agi = r.agi;
+  const effRate = (r.totalTax != null && agi) ? (r.totalTax / agi) * 100 : null;
+  const nameLine = r.taxpayerName ? esc(r.taxpayerName.toUpperCase()) : '';
+
+  html += `<div class="report-header">
+    <div class="report-header-top">
+      <div>
+        <h1>Tax Summary \u2014 ${r.taxYear}</h1>
+        ${nameLine ? `<div class="taxpayer">${nameLine}</div>` : ''}
+      </div>
+      <div class="report-actions no-print">
+        <button class="btn secondary" id="printBtn">Print / Save PDF</button>
+        <button class="btn secondary" id="startOverBtn">Start over</button>
+      </div>
+    </div>
+    <div class="stat-line">
+      <b>Filing Status:</b> ${esc(statusLabel)}
+      ${agi != null ? ` &nbsp;|&nbsp; <b>AGI:</b> ${fmtMoney(agi)}` : ''}
+      ${r.taxableIncome != null ? ` &nbsp;|&nbsp; <b>Taxable Income:</b> ${fmtMoney(r.taxableIncome)}` : ''}
+      ${r.totalTax != null ? ` &nbsp;|&nbsp; <b>Total Tax:</b> ${fmtMoney(r.totalTax)}` : ''}
+      ${effRate != null ? ` &nbsp;|&nbsp; <b>Effective Rate:</b> ${effRate.toFixed(1)}%` : ''}
+    </div>
+  </div>`;
+
+  // ---- Section: Income Breakdown ----
+  const inc = computeIncomeBreakdown(r, cutoffFraction);
+  html += sectionOpen('Income Breakdown');
+  if (inc) {
+    let rows = '';
+    inc.rows.forEach(row => {
+      const pct = (row.value / inc.total) * 100;
+      rows += `<tr><td><span class="swatch" style="background:${row.color}"></span>${esc(row.label)}</td><td class="num">${fmtMoney(row.value)}</td><td class="num">${fmtPct(pct)}</td></tr>`;
+    });
+    rows += `<tr class="total"><td>Total Income (line 9)</td><td class="num">${fmtMoney(inc.total)}</td><td class="num">100.0%</td></tr>`;
+    html += `<div class="sec-body">
+      <div class="table-col"><table class="datatable"><thead><tr><th>Income Category</th><th class="num">Amount</th><th class="num">% of Total Income</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="chart-col"><div class="chart-wrap">${renderPie(inc.posRows.map(x=>({label:x.label, shortLabel:x.shortLabel, value:x.value, color:x.color})), {pieTotal: inc.shownSum})}</div></div>
+    </div>`;
+    if (inc.hasNegative) {
+      html += `<div class="footnote">A capital loss or other negative income adjustment on this return reduces total income but can\u2019t be drawn as a pie slice, so it\u2019s reflected in the table above only.</div>`;
+    }
+    html += `<div class="footnote">Income types under ${(inc.cutoffFraction * 100).toFixed(1)}% of total income are combined into a single "Other Income" line.</div>`;
+  } else {
+    html += `<p class="chart-empty">Total income (Form 1040, line 9) wasn't found in this PDF.</p>`;
+  }
+  html += sectionClose;
+
+  // ---- Section: Tax Breakdown (QDCGT worksheet) ----
+  const taxBd = computeTaxBreakdown(r);
+  html += sectionOpen('Tax Breakdown \u2014 Qualified Dividends & Capital Gain Tax Worksheet', 'All line references from the QD & Capital Gain Tax Worksheet. Total Tax = line 25.');
+  if (taxBd && taxBd.rows.length) {
+    let rows = '';
+    taxBd.rows.forEach(row => {
+      const pct = (row.tax / taxBd.total) * 100;
+      rows += `<tr><td><span class="swatch" style="background:${row.color}"></span>${esc(row.label)}</td><td class="num">${fmtMoney(row.amount)}</td><td class="num">${fmtMoney(row.tax)}</td><td class="num">${fmtPct(pct)}</td></tr>`;
+    });
+    rows += `<tr class="total"><td>Total Tax (line 25)</td><td class="num"></td><td class="num">${fmtMoney(taxBd.total)}</td><td class="num">100.0%</td></tr>`;
+    html += `<div class="sec-body">
+      <div class="table-col"><table class="datatable"><thead><tr><th>Category</th><th class="num">Income Amount</th><th class="num">Tax Amount</th><th class="num">% of Total Tax</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="chart-col"><div class="chart-wrap">${renderPie(taxBd.rows.map(x=>({label:x.label, shortLabel:x.shortLabel, value:x.amount, color:x.color})))}</div></div>
+    </div>`;
+  } else {
+    html += `<p class="chart-empty">Qualified Dividends and Capital Gain Tax Worksheet wasn't found in this PDF (it's only generated when there are qualified dividends or capital gains).</p>`;
+  }
+  html += sectionClose;
+
+  // ---- Section: Ordinary Bracket Breakdown (only when there's tax liability) ----
+  if (r.totalTax && r.totalTax > 0) {
+    const brRows = computeOrdinaryBracketBreakdown(r.qd_line5, r.taxYear, status);
+    html += sectionOpen('Ordinary Income Tax Bracket Breakdown', `Ordinary taxable income ${fmtMoney(r.qd_line5)} across ${r.taxYear} ${statusLabel} brackets:`);
+    if (brRows.length) {
+      let rows = '';
+      const lineTotal = r.qd_line25 || brRows.reduce((s,x)=>s+x.tax,0);
+      const brColors = ['var(--c-blue)','var(--c-green)','var(--c-orange)','var(--c-red)','var(--c-purple)','var(--c-teal)','var(--c-gold)'];
+      brRows.forEach((row, i) => {
+        const pct = (row.tax / lineTotal) * 100;
+        rows += `<tr><td><span class="swatch" style="background:${brColors[i%brColors.length]}"></span>${(row.rate*100).toFixed(0)}%</td><td class="num">${fmtMoney(row.amount)}</td><td class="num">${fmtMoney(row.tax)}</td><td class="num">${fmtPct(pct)}</td></tr>`;
+      });
+      const brIncomeTotal = brRows.reduce((s,x)=>s+x.amount,0);
+      const brTaxTotal = brRows.reduce((s,x)=>s+x.tax,0);
+      rows += `<tr class="total"><td>Total</td><td class="num">${fmtMoney(brIncomeTotal)}</td><td class="num">${fmtMoney(brTaxTotal)}</td><td class="num">${fmtPct((brTaxTotal/lineTotal)*100)}</td></tr>`;
+      html += `<div class="sec-body">
+        <div class="table-col"><table class="datatable"><thead><tr><th>Bracket</th><th class="num">Income in Bracket</th><th class="num">Tax in Bracket</th><th class="num">% of Total Tax</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="chart-col"><div class="chart-wrap">${renderPie(brRows.map((x,i)=>({label:(x.rate*100).toFixed(0)+'%', value:x.amount, color:brColors[i%brColors.length]})))}</div></div>
+      </div>`;
+    } else {
+      html += `<p class="chart-empty">Couldn't compute a bracket breakdown \u2014 ordinary taxable income or filing status/year wasn't available.</p>`;
+    }
+    html += sectionClose;
+  }
+
+  // ---- Section: Deductions ----
+  const ded = computeDeductionBreakdown(r, status, cutoffFraction);
+  html += sectionOpen('Deductions');
+  if (!ded || ded.amount == null) {
+    html += `<p class="chart-empty">Deduction amount (Form 1040, line 12e) wasn't found in this PDF.</p>`;
+  } else if (ded.isStandard) {
+    html += `<table class="datatable compact-kv"><thead><tr><th>Item</th><th class="num">Amount</th></tr></thead><tbody>
+      <tr><td>Standard Deduction (${esc(statusLabel)}, ${r.taxYear})</td><td class="num">${fmtMoney(ded.amount)}</td></tr>
+    </tbody></table>`;
+  } else if (ded.rows && ded.rows.length) {
+    let rows = '';
+    ded.rows.forEach(row => {
+      const pct = (row.value / ded.amount) * 100;
+      rows += `<tr><td><span class="swatch" style="background:${row.color}"></span>${esc(row.label)}</td><td class="num">${fmtMoney(row.value)}</td><td class="num">${fmtPct(pct)}</td></tr>`;
+    });
+    rows += `<tr class="total"><td>Total Itemized Deductions</td><td class="num">${fmtMoney(ded.amount)}</td><td class="num">100.0%</td></tr>`;
+    html += `<div class="sec-body">
+      <div class="table-col"><table class="datatable"><thead><tr><th>Category</th><th class="num">Amount</th><th class="num">% of Total</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="chart-col"><div class="chart-wrap">${renderPie(ded.rows.filter(x=>x.value>0), {pieTotal: ded.rows.filter(x=>x.value>0).reduce((s,x)=>s+x.value,0)})}</div></div>
+    </div>`;
+  } else {
+    html += `<table class="datatable compact-kv"><thead><tr><th>Item</th><th class="num">Amount</th></tr></thead><tbody>
+      <tr><td>Itemized Deductions (Schedule A)</td><td class="num">${fmtMoney(ded.amount)}</td></tr>
+    </tbody></table>
+    <div class="footnote">This return itemizes, but the individual Schedule A categories couldn't be reliably matched to this total, so only the total is shown.</div>`;
+  }
+  html += sectionClose;
+
+  // ---- Section: NIIT (conditional) ----
+  if (r.niit && r.niit > 0) {
+    html += sectionOpen('Net Investment Income Tax (NIIT)');
+    html += `<table class="datatable compact-kv"><thead><tr><th>Item</th><th class="num">Amount</th></tr></thead><tbody>
+      <tr><td>NIIT @ 3.8% (Form 8960 line 17)</td><td class="num">${fmtMoney(r.niit)}</td></tr>
+    </tbody></table>`;
+    html += sectionClose;
+  }
+
+  // ---- Section: Foreign Tax Credit (conditional) ----
+  if (r.ftc && r.ftc > 0) {
+    html += sectionOpen('Foreign Tax Credit');
+    html += `<table class="datatable compact-kv"><thead><tr><th>Item</th><th class="num">Amount</th></tr></thead><tbody>
+      <tr><td>Foreign Tax Credit (Schedule 3 line 1 / Form 1116)</td><td class="num">${fmtMoney(r.ftc)}</td></tr>
+    </tbody></table>`;
+    html += sectionClose;
+  }
+
+  // ---- Section: 2210AI payment schedule (conditional) ----
+  if (r.required2210 && r.required2210.length === 4) {
+    const pd = period2210Dates(r.taxYear);
+    html += sectionOpen('Tax Payment Schedule \u2014 Form 2210 / Schedule AI', 'Period dates: 1/1\u20133/31 \u00b7 4/1\u20135/31 \u00b7 6/1\u20138/31 \u00b7 9/1\u201312/31. Deadlines per Form 2210 Part III. ES vouchers for next year excluded.');
+    let head = '<tr><th></th><th class="num">Period 1</th><th class="num">Period 2</th><th class="num">Period 3</th><th class="num">Period 4</th></tr>';
+    let periodRow = '<tr><td>Period</td>';
+    pd.ranges.forEach(p => periodRow += `<td class="num">${esc(p)}</td>`);
+    periodRow += '</tr>';
+    let deadlineRow = '<tr><td>Deadline</td>';
+    pd.deadlines.forEach(d => deadlineRow += `<td class="num">${esc(d)}</td>`);
+    deadlineRow += '</tr>';
+    let reqRow = '<tr><td>Required Payment</td>';
+    r.required2210.forEach(v => reqRow += `<td class="num">${fmtMoney(v)}</td>`);
+    reqRow += '</tr>';
+    let estRow = '<tr><td>Estimated Tax Paid</td>';
+    const est = r.estimated2210 || [null,null,null,null];
+    est.forEach(v => estRow += `<td class="num">${fmtMoney(v)}</td>`);
+    estRow += '</tr>';
+    html += `<table class="datatable"><thead>${head}</thead><tbody>${periodRow}${deadlineRow}${reqRow}${estRow}</tbody></table>`;
+    html += sectionClose;
+  }
+
+  // ---- Section: Bottom line ----
+  const ro = refundOrOwed(r);
+  html += sectionOpen('Remaining Tax Owed / Refund');
+  const roLabel = ro.type === 'refund' ? 'Refund' : (ro.type === 'owed' ? 'Balance Due' : 'Settled (no refund or balance due)');
+  html += `<table class="datatable compact-kv"><thead><tr><th>Item</th><th class="num">Amount</th></tr></thead><tbody>
+    <tr><td>${esc(roLabel)}</td><td class="num">${fmtMoney(ro.amount)}</td></tr>
+  </tbody></table>`;
+  html += sectionClose;
+
+  html += `<div class="footnote no-print" style="text-align:center; margin-top:14px;">
+    Generated locally in your browser from the uploaded PDF. Figures are read directly from your return
+    or computed from published IRS bracket tables \u2014 verify against your actual filing before relying on it.
+  </div>`;
+
+  return html;
+}
+
+/* =====================================================================
+   UI WIRING
+   ===================================================================== */
+const intake = document.getElementById('intake');
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const statusLine = document.getElementById('statusLine');
+const confirmBox = document.getElementById('confirm');
+const cfYear = document.getElementById('cfYear');
+const cfStatus = document.getElementById('cfStatus');
+const cfCutoff = document.getElementById('cfCutoff');
+const cfStatusFlag = document.getElementById('cfStatusFlag');
+const confirmWarn = document.getElementById('confirmWarn');
+const generateBtn = document.getElementById('generateBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const reportEl = document.getElementById('report');
+
+let parsedFields = null;
+
+function setStatus(msg, isError) {
+  statusLine.textContent = msg || '';
+  statusLine.className = 'status-line' + (msg ? ' show' : '') + (isError ? ' error' : '');
+}
+
+function resetToIntake() {
+  reportEl.classList.remove('show');
+  reportEl.innerHTML = '';
+  intake.style.display = '';
+  confirmBox.classList.remove('show');
+  setStatus('');
+  fileInput.value = '';
+  parsedFields = null;
+}
+
+async function handleFile(file) {
+  if (!file || file.type !== 'application/pdf') {
+    setStatus('Please choose a PDF file.', true);
+    return;
+  }
+  confirmBox.classList.remove('show');
+  setStatus('Reading PDF…');
+  try {
+    const text = await extractPdfText(file);
+    setStatus('Parsing your return…');
+    const fields = parseReturn(text);
+
+    if (!fields.taxYear) {
+      setStatus('Couldn\u2019t find a tax year on Form 1040 or 1040-SR in this PDF. Make sure this is a complete e-filed federal return.', true);
+      return;
+    }
+    if (fields.taxYear < MIN_YEAR || fields.taxYear > MAX_YEAR) {
+      setStatus(`${fields.taxYear} is not within this tool's capability (supported years: ${MIN_YEAR}\u2013${MAX_YEAR}).`, true);
+      return;
+    }
+
+    const status = determineFilingStatus(fields);
+    parsedFields = fields;
+
+    cfYear.textContent = fields.taxYear;
+    if (status === 'unknown') {
+      cfStatus.value = 'single';
+      cfStatusFlag.textContent = '(please confirm)';
+      confirmWarn.style.display = 'block';
+      confirmWarn.textContent = 'Filing status couldn\u2019t be auto-detected (this usually happens when itemized deductions are used instead of the standard deduction). Please select it manually.';
+    } else {
+      cfStatus.value = status;
+      cfStatusFlag.textContent = fields.filingStatusFromCheckbox
+        ? '(read from Form 1040 checkbox)'
+        : '(inferred — please double-check)';
+      confirmWarn.style.display = 'none';
+    }
+
+    setStatus('');
+    confirmBox.classList.add('show');
+  } catch (err) {
+    console.error(err);
+    setStatus('Couldn\u2019t read that PDF (' + (err && err.message ? err.message : 'unknown error') + '). Try a different file.', true);
+  }
+}
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files && fileInput.files[0];
+  if (f) handleFile(f);
+});
+
+cancelBtn.addEventListener('click', resetToIntake);
+
+// Printing needs to work whether this file is opened straight from local
+// disk or embedded on a hosting site (e.g. a Google Sites "Embed code"
+// gadget). Many site builders load embedded HTML inside a sandboxed
+// iframe, and calling window.print() on the page *inside* that iframe is
+// commonly blocked outright — some hosts omit "allow-modals" from the
+// sandbox, which silently swallows the call with no error and no dialog.
+// But that only applies when this page actually IS the content of such an
+// iframe — opening it directly (a local file, a direct URL, most ways of
+// hosting a page online, and plenty of "embed a page" setups that don't
+// literally iframe it) has no parent frame to be sandboxed by, so a plain
+// window.print() on the current page already works there with no extra
+// tab. The workaround below — serializing the report into its own
+// document and opening that as a real link navigation in a fresh
+// top-level tab, which sandboxed iframes typically still allow through
+// even when they block window.print() itself — is reserved for the
+// narrower case where this page can detect it's actually inside a frame.
+function isEmbeddedInFrame() {
+  try { return window.self !== window.top; }
+  catch (e) { return true; } // cross-origin parent throws => definitely framed
+}
+
+function printReport(reportHtml) {
+  if (!isEmbeddedInFrame()) {
+    window.print();
+    return;
+  }
+  const styleTag = document.querySelector('style') ? document.querySelector('style').outerHTML : '';
+  // The report's own header markup includes Print/Start Over buttons, but
+  // this standalone tab only loads a tiny auto-print script — it doesn't
+  // run the rest of the app's JS, so those buttons would render but do
+  // nothing if clicked, which is confusing if the person dismisses the
+  // print dialog and is left looking at a dead-looking page. Swapped for
+  // a single button with its own inline handler, so it actually works in
+  // this tab on its own.
+  const printOnlyHtml = reportHtml.replace(
+    /<div class="report-actions no-print">[\s\S]*?<\/div>/,
+    '<div class="report-actions no-print"><button class="btn secondary" onclick="window.print()">Print / Save PDF</button></div>'
+  );
+  const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tax Summary</title>' + styleTag +
+    '</head><body><div id="app"><div id="report" class="show">' + printOnlyHtml + '</div></div>' +
+    '<script>window.addEventListener("load", function(){ setTimeout(function(){ window.print(); }, 80); });<\/script>' +
+    '</body></html>';
+  let opened = false;
+  try {
+    const blob = new Blob([doc], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    opened = true;
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  } catch (e) {
+    opened = false;
+  }
+  if (!opened) window.print();
+}
+
+generateBtn.addEventListener('click', () => {
+  if (!parsedFields) return;
+  const status = cfStatus.value;
+  let cutoffPct = parseFloat(cfCutoff.value);
+  if (isNaN(cutoffPct) || cutoffPct < 0) cutoffPct = 5;
+  if (cutoffPct > 50) cutoffPct = 50;
+  const html = buildReport(parsedFields, status, cutoffPct / 100);
+  reportEl.innerHTML = html;
+  intake.style.display = 'none';
+  reportEl.classList.add('show');
+  document.getElementById('printBtn').addEventListener('click', () => printReport(html));
+  document.getElementById('startOverBtn').addEventListener('click', resetToIntake);
+  window.scrollTo(0, 0);
+});
+
+})();
+</script>
+</body>
+</html>

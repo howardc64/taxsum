@@ -1,13 +1,12 @@
-Generate python code to do the following
+Generate html to do the following
 
-Syntax
+Input = user entered tax pdf file
+Output = html with following features
 
-	taxsum taxin.pdf
+==== User Input
 
-	taxin.pdf = input tax file in PDF
-	generate summary pdf name taxin_taxsun.pdf including the following
-
-Default echo is silent (don’t print progress messages)
+Prompt user to input pdf tax file (taxfile)
+Prompt user to enter cutoff % of total income to show details ( cutoff ) default 5%
 
 ====
 
@@ -16,8 +15,12 @@ MaxYear = 2025
 
 ====
 
-FilingStat is on 1040 of taxin.pdf
-TaxYr is on 1040 of taxin.pdf
+fed1040 = 1040 or 1040-SR
+
+====
+
+FilingStat is on fed1040 of taxfile
+TaxYr is on fed1040 of taxfile
 
 If TaxYr is not within taxbrackettbl, then echo $TaxYr” is not within script’s capability”, then exit script
 
@@ -32,27 +35,25 @@ Find and scrap other sources to check against taxbrackettbl
 
 ====
 
-FilingStat is on 1040 of taxin.pdf
-TaxYr is on 1040 of taxin.pdf
-
-If TaxYr is not within taxbrackettbl, then echo $TaxYr” is not within script’s capability”, then quit script
-
-====
-
 Pie chart specification
 	use more distinctive colors for each slice
 	shorten and/or abbreviate label (eliminate word bracket), %, and amount rounded to $k. Put inside slice if possible. If doesn’t fit, put outside near circumference of the slice
 
-====
+==== Income Breakdown
 
 Show Income Breakdown in table and pie chart
 
 % of total income for the following
-	Ordinary dividends - Qualified dividends
-	Qualified dividends
-	IRA withdraw
+	All major income types > cutoff
+	If Ordinary div > cutoff, separate out
+		Ordinary dividends - Qualified dividends
+		Just Qualified dividends
+	Include Schedule 1 income items
+	Smaller income items that combined < cutoff total can be groups into a single category (other income)
 
-====
+==== Qualified Dividend and Capital Gain Tax Worksheet
+
+If return use this method to calculate taxes, then do the following
 
 Show Tax Breakdown in table and pie chart
 	All lines are in Qualified Dividend and Capital Gain Tax Worksheet
@@ -76,7 +77,9 @@ Ordinary tax bracket
 
 Pie chart amount should be income amount
 
-====
+==== Tax Breakdown
+
+If have tax liability, generate this section
 
 Ordinary tax bracket tax breakdown in table and pie chart
 	use taxbrackettbl for this year
@@ -84,46 +87,52 @@ Ordinary tax bracket tax breakdown in table and pie chart
 
 Pie chart amount should be income amount
 
-====
+==== Deductions
 
-Show NIIT amount
+Show deductions
 
-====
+If itemized, show all items > cutoff, sum remainder as misc
 
-Show Foreign Tax Credit
+==== NIIT
 
-====
+If have NIIT, show NIIT amount
 
-Show tax payment schedule
+==== Foreign Tax Credit
+
+If have Show Foreign Tax Credit, show it
+
+==== 2210AI
+
+If have 2210AI, show tax payment schedule
 	4 2210AI period start end dates are 1/1/-3/31 4/1-5/31 6/1-8/31 9/1-12/31
 	Row label 4 deadline periods on form 2210AI
 	Row for required payment for each 2210AI period 
 	Row for Estimated tax payment for each 2210AI period
 	Do not include ES vouchers for next year.
 
-====
+==== Owe or Refund
 
 Remaining tax owed or refund amount
 	show only single line for owned or refund
 
-====
+==== No ES
 
 Do not display ES vouchers for next year.
 
-=====
+===== Layout
 
 Keep sections on same page on output file
 
-=====
+fit each section within page borders
 
-Use prior_taxsum.py as reference for working python script example
+===== Print/Save PDF
 
-=====
+Enable print/save PDF when running html from local drive or hosted online
 
-Layout
+===== References
 
-	fit each section within page borders
+Use prior html as reference if included
 
-=====
+===== Tests
 
-Test against at least 2 tax returns from 2 different years
+Test against included tax returns
