@@ -205,8 +205,6 @@
       border-bottom-color: #46515A;
     }
   }
-  .report-section .sec-desc { color: var(--ink-faint); font-size: 10.5px; margin: 0 0 8px; max-width: 90ch; }
-
   .sec-body { display: flex; gap: 16px; align-items: center; }
   .sec-body .table-col { flex: 1 1 auto; min-width: 0; }
   .sec-body .chart-col { flex: 0 0 auto; }
@@ -239,7 +237,7 @@
   .pie-label-outside .amt { fill: var(--ink-soft); font-weight: 500; }
   .pie-leader { stroke: var(--ink-faint); stroke-width: 0.75; fill: none; }
 
-  .footnote { font-size: 10px; color: var(--ink-faint); margin-top: 4px; }
+  .footnote { font-size: 10px; color: var(--ink-faint); margin-top: 4px; max-width: 90ch; }
 
   .back-link { display: inline-block; margin-top: 6px; font-size: 13px; color: var(--ink-faint); cursor: pointer; text-decoration: underline; background: none; border: none; padding: 0; font-family: inherit; }
 
@@ -685,7 +683,7 @@ function validateReturn(r) {
   if (r.sch1OtherIncomeTotal != null && (r.sch1Line8Items || []).length) {
     const sum = r.sch1Line8Items.reduce((s, x) => s + x.value, 0);
     if (!near(sum, r.sch1OtherIncomeTotal, 1)) {
-      warnings.push(`Schedule 1's named "Other income" sub-items sum to ${fmtMoney(sum)}, but line 9 reports ${fmtMoney(r.sch1OtherIncomeTotal)} \u2014 the Income Breakdown shows the combined total for that section instead of naming the source.`);
+      warnings.push(`Schedule 1's named "Other income" sub-items sum to ${fmtMoney(sum)}, but line 9 reports ${fmtMoney(r.sch1OtherIncomeTotal)} \u2014 the Taxable Income section shows the combined total for that section instead of naming the source.`);
     }
   }
 
@@ -824,7 +822,7 @@ function parseReturn(text) {
   // append the Qualified Dividends and Capital Gain Tax Worksheet as a
   // separate work-paper even when the return has qualified dividends or
   // capital gains, which otherwise leaves the Ordinary Income Tax Bracket
-  // Breakdown section with nothing to show. That section only needs the
+  // section with nothing to show. That section only needs the
   // worksheet's line 5 ("ordinary taxable income"), which can be derived
   // directly from numbers already parsed from Form 1040 itself using the
   // same formula the worksheet's own lines 1-4 use (taxable income minus
@@ -832,7 +830,7 @@ function parseReturn(text) {
   // of whether the more complex Schedule D Tax Worksheet also applies,
   // since that only changes how tax on the *preferential-rate* portion is
   // computed, not which portion of taxable income counts as ordinary. The
-  // full Tax Breakdown (QDCGT) section still requires the real worksheet
+  // full QDCGT Worksheet section still requires the real worksheet
   // and stays empty without it — only the bracket breakdown, which needs
   // nothing beyond this one derived number, is filled in this way.
   let qd5Derived = false;
@@ -852,7 +850,7 @@ function parseReturn(text) {
 
   r.parseWarnings = validateReturn(r);
   if (qd5Derived) {
-    r.parseWarnings.push('The Qualified Dividends & Capital Gain Tax Worksheet page itself wasn\u2019t found in this PDF, so the Ordinary Income Tax Bracket Breakdown uses an ordinary-taxable-income figure derived from Form 1040\u2019s own numbers rather than read directly from that worksheet.');
+    r.parseWarnings.push('The Qualified Dividends & Capital Gain Tax Worksheet page itself wasn\u2019t found in this PDF, so the Ordinary Income Tax Bracket section uses an ordinary-taxable-income figure derived from Form 1040\u2019s own numbers rather than read directly from that worksheet.');
   }
 
   return r;
@@ -1268,12 +1266,16 @@ function renderPie(slices, opts) {
 /* =====================================================================
    REPORT BUILDING
    ===================================================================== */
-function sectionOpen(title, desc) {
+function sectionOpen(title) {
   return `<section class="report-section">
-    <h2>${esc(title)}</h2>
-    ${desc ? `<div class="sec-desc">${esc(desc)}</div>` : ''}`;
+    <h2>${esc(title)}</h2>`;
 }
 const sectionClose = '</section>';
+// A section-level note, rendered as a footer note alongside the section's
+// other footnotes, right before sectionClose.
+function sectionNote(desc) {
+  return desc ? `<div class="footnote">${esc(desc)}</div>` : '';
+}
 
 // A labeled row with a color swatch, followed by any number of already-
 // formatted numeric cells. Used for every breakdown table (income, tax
@@ -1342,9 +1344,9 @@ function buildReport(r, status, cutoffFraction) {
     </div>`;
   }
 
-  // ---- Section: Income Breakdown ----
+  // ---- Section: Taxable Income ----
   const inc = computeIncomeBreakdown(r, cutoffFraction);
-  html += sectionOpen('Taxable Income Breakdown');
+  html += sectionOpen('Taxable Income');
   if (inc) {
     const rows = inc.rows.map(row => swatchRow(row.color, row.label, [fmtMoney(row.value), fmtPct((row.value / inc.total) * 100)])).join('')
       + totalRow('Total Income (line 9)', [fmtMoney(inc.total), '100.0%']);
@@ -1362,37 +1364,39 @@ function buildReport(r, status, cutoffFraction) {
 
   // ---- Section: Tax Exempt Income ----
   const taxEx = computeTaxExemptIncomeBreakdown(r, cutoffFraction);
-  html += sectionOpen('Tax Exempt Income', 'Nontaxable amounts reported alongside taxable income on Form 1040.');
+  html += sectionOpen('Tax Exempt Income');
   if (taxEx) {
     const rows = taxEx.rows.map(row => swatchRow(row.color, row.label, [fmtMoney(row.value), fmtPct((row.value / taxEx.total) * 100)])).join('')
       + totalRow('Total Tax Exempt Income', [fmtMoney(taxEx.total), '100.0%']);
     const table = dataTable([{label:'Income Category'}, {label:'Amount', num:true}, {label:'% of Tax Exempt Income', num:true}], rows);
     const chart = renderPie(taxEx.posRows.map(x=>({label:x.label, shortLabel:x.shortLabel, value:x.value, color:x.color})), {pieTotal: taxEx.total});
     html += tableWithChart(table, chart);
+    html += sectionNote('Nontaxable amounts reported alongside taxable income on Form 1040.');
     html += `<div class="footnote">Tax-exempt amounts are reported separately from Form 1040 line 9 total income and therefore are not included in the taxable-income pie chart.</div>`;
   } else {
     html += `<p class="chart-empty">No separately identifiable tax-exempt income was found in this return.</p>`;
   }
   html += sectionClose;
 
-  // ---- Section: Tax Breakdown (QDCGT worksheet) ----
+  // ---- Section: QDCGT Worksheet ----
   const taxBd = computeTaxBreakdown(r);
-  html += sectionOpen('Tax Breakdown \u2014 Qualified Dividends & Capital Gain Tax Worksheet', 'All line references from the QD & Capital Gain Tax Worksheet. Total Tax = line 25.');
+  html += sectionOpen('Qualified Dividends & Capital Gain Tax Worksheet');
   if (taxBd && taxBd.rows.length) {
     const rows = taxBd.rows.map(row => swatchRow(row.color, row.label, [fmtMoney(row.amount), fmtMoney(row.tax), fmtPct((row.tax / taxBd.total) * 100)])).join('')
       + totalRow('Total Tax (line 25)', ['', fmtMoney(taxBd.total), '100.0%']);
     const table = dataTable([{label:'Category'}, {label:'Income Amount', num:true}, {label:'Tax Amount', num:true}, {label:'% of Total Tax', num:true}], rows);
     const chart = renderPie(taxBd.rows.map(x=>({label:x.label, shortLabel:x.shortLabel, value:x.amount, color:x.color})));
     html += tableWithChart(table, chart);
+    html += sectionNote('All line references from the QD & Capital Gain Tax Worksheet. Total Tax = line 25.');
   } else {
     html += `<p class="chart-empty">Qualified Dividends and Capital Gain Tax Worksheet wasn't found in this PDF (it's only generated when there are qualified dividends or capital gains).</p>`;
   }
   html += sectionClose;
 
-  // ---- Section: Ordinary Bracket Breakdown (only when there's tax liability) ----
+  // ---- Section: Ordinary Income Tax Bracket (only when there's tax liability) ----
   if (r.totalTax && r.totalTax > 0) {
     const brRows = computeOrdinaryBracketBreakdown(r.qd_line5, r.taxYear, status);
-    html += sectionOpen('Ordinary Income Tax Bracket Breakdown', `Ordinary taxable income ${fmtMoney(r.qd_line5)} across ${r.taxYear} ${statusLabel} brackets:`);
+    html += sectionOpen('Ordinary Income Tax Bracket');
     if (brRows.length) {
       const lineTotal = r.qd_line25 || brRows.reduce((s,x)=>s+x.tax,0);
       const brColors = ['var(--c-blue)','var(--c-green)','var(--c-orange)','var(--c-red)','var(--c-purple)','var(--c-teal)','var(--c-gold)'];
@@ -1405,6 +1409,7 @@ function buildReport(r, status, cutoffFraction) {
       const table = dataTable([{label:'Bracket'}, {label:'Income in Bracket', num:true}, {label:'Tax in Bracket', num:true}, {label:'% of Total Tax', num:true}], rows);
       const chart = renderPie(brRows.map((x,i)=>({label:(x.rate*100).toFixed(0)+'%', value:x.amount, color:brColors[i%brColors.length]})));
       html += tableWithChart(table, chart);
+      html += sectionNote(`Ordinary taxable income ${fmtMoney(r.qd_line5)} across ${r.taxYear} ${statusLabel} brackets:`);
     } else {
       html += `<p class="chart-empty">Couldn't compute a bracket breakdown \u2014 ordinary taxable income or filing status/year wasn't available.</p>`;
     }
@@ -1448,7 +1453,7 @@ function buildReport(r, status, cutoffFraction) {
   // ---- Section: 2210AI payment schedule (conditional) ----
   if (r.required2210 && r.required2210.length === 4) {
     const pd = period2210Dates(r.taxYear);
-    html += sectionOpen('Tax Payment Schedule \u2014 Form 2210 / Schedule AI', 'Period dates: 1/1\u20133/31 \u00b7 4/1\u20135/31 \u00b7 6/1\u20138/31 \u00b7 9/1\u201312/31. Deadlines per Form 2210 Part III. ES vouchers for next year excluded.');
+    html += sectionOpen('Tax Payment Schedule \u2014 Form 2210 / Schedule AI');
     const est = r.estimated2210 || [null,null,null,null];
     const scheduleRows = [
       ['Period', pd.ranges.map(esc)],
@@ -1458,6 +1463,7 @@ function buildReport(r, status, cutoffFraction) {
     ].map(([label, cells]) => `<tr><td>${label}</td>${cells.map(c => `<td class="num">${c}</td>`).join('')}</tr>`).join('');
     const head = '<tr><th></th>' + [1,2,3,4].map(n => `<th class="num">Period ${n}</th>`).join('') + '</tr>';
     html += `<table class="datatable"><thead>${head}</thead><tbody>${scheduleRows}</tbody></table>`;
+    html += sectionNote('Period dates: 1/1\u20133/31 \u00b7 4/1\u20135/31 \u00b7 6/1\u20138/31 \u00b7 9/1\u201312/31. Deadlines per Form 2210 Part III. ES vouchers for next year excluded.');
     html += sectionClose;
   }
 
