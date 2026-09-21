@@ -3,6 +3,8 @@ Generate html to do the following
 Input = user entered tax pdf file
 Output = html with following features
 
+Name html index.html for GitHub webpage hosting
+
 ==== User Input
 
 Prompt user to input pdf tax file (taxfile)
@@ -10,8 +12,8 @@ Prompt user to enter cutoff % of total income to show details ( cutoff ) default
 
 ====
 
-MinYear = 2020
-MaxYear = 2025
+MinYear = 2023
+MaxYear = 2026
 
 ====
 
@@ -38,8 +40,9 @@ Find and scrap other sources to check against taxbrackettbl
 Pie chart specification
 	use more distinctive colors for each slice
 	shorten and/or abbreviate label (eliminate word bracket), %, and amount rounded to $k. Put inside slice if possible. If doesn’t fit, put outside near circumference of the slice
+	render pie chart even if single item 100%
 
-==== Income Breakdown
+==== Taxable Income
 
 Show Income Breakdown in table and pie chart
 
@@ -51,29 +54,28 @@ Show Income Breakdown in table and pie chart
 	Include Schedule 1 income items
 	Smaller income items that combined < cutoff total can be groups into a single category (other income)
 
+==== Tax Exempt Income
+
+% of total income for the following
+	All major income types > cutoff
+	untaxed social security amount
+	Smaller income items that combined < cutoff total can be groups into a single category (other income)
+
+Show Income Breakdown in table and pie chart
+
+
 ==== Qualified Dividend and Capital Gain Tax Worksheet
 
 If return use this method to calculate taxes, then do the following
 
 Show Tax Breakdown in table and pie chart
 	All lines are in Qualified Dividend and Capital Gain Tax Worksheet
-	Total tax = line 25
+	totaltax = find total tax
 
-15% tax bracket
-	all data in 
-	income amount ( line 17 )
-	tax ( line 18 )
-	% of total tax (line 18 / 25 )
-
-20% tax bracket
-	income amount (line 20 )
-	tax ( line 21)
-	% of total tax ( line 21 / 25)
-
-Ordinary tax bracket
-	income amount (line 5)
-	tax ( line 22 )
-	% of total tax ( line 22 / 25 )
+For 15% 20% and ordinary tax bracket
+	find income amount
+	find tax amount
+	% of total tax
 
 Pie chart amount should be income amount
 

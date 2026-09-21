@@ -22,6 +22,8 @@
     --accent-line: #2C5A82;
     --navy: #2C5A82;
     --navy-dark: #1F425E;
+    --section-heading: #1F425E;
+    --section-heading-bg: #EEF3F7;
     --c-blue: #3B6EA5;
     --c-green: #4C9A4C;
     --c-orange: #E0932E;
@@ -50,6 +52,8 @@
       --ink: #E8ECEF;
       --ink-soft: #B0BAC2;
       --ink-faint: #808A92;
+      --section-heading: #E8ECEF;
+      --section-heading-bg: #202830;
     }
   }
   :root[data-theme="dark"] {
@@ -60,6 +64,8 @@
     --ink: #E8ECEF;
     --ink-soft: #B0BAC2;
     --ink-faint: #808A92;
+    --section-heading: #E8ECEF;
+    --section-heading-bg: #202830;
   }
 
   * { box-sizing: border-box; }
@@ -128,6 +134,16 @@
   .btn.secondary { background: transparent; color: var(--ink); border-color: var(--rule-strong); font-weight: 500; }
   .confirm-actions { margin-top: 20px; display: flex; gap: 10px; align-items: center; }
   .confirm-warn { font-size: 13px; color: var(--accent-owe); margin-top: 10px; }
+  .parse-warnings {
+    font-size: 13px; line-height: 1.5; color: var(--ink);
+    background: #FBEAE5;
+    background: color-mix(in srgb, var(--accent-owe) 10%, transparent);
+    border: 1px solid var(--accent-owe); border-radius: var(--radius);
+    padding: 12px 16px; margin: 0 0 18px;
+  }
+  .parse-warnings b { color: var(--accent-owe); }
+  .parse-warnings ul { margin: 6px 0 4px; padding-left: 20px; }
+  .parse-warnings li { margin-bottom: 3px; }
   .confirm-hint { font-size: 12px; color: var(--ink-faint); margin-top: 10px; line-height: 1.5; }
   .cutoff-field { display: flex; align-items: center; gap: 8px; }
   .cutoff-field input {
@@ -162,9 +178,34 @@
   .report-actions { display: flex; gap: 8px; }
   .report-actions .btn { padding: 6px 12px; font-size: 12px; }
 
-  .report-section { break-inside: avoid; page-break-inside: avoid; margin-top: 16px; }
-  .report-section h2 { font-size: 13.5px; color: var(--navy); }
-  .report-section .sec-desc { color: var(--ink-faint); font-size: 10.5px; margin-top: 1px; margin-bottom: 6px; max-width: 90ch; }
+  .report-section { break-inside: avoid; page-break-inside: avoid; margin-top: 18px; }
+  .report-section h2 {
+    margin: 0 0 8px;
+    font-size: 14px; line-height: 1.3;
+    color: var(--section-heading) !important;
+    background: var(--section-heading-bg) !important;
+    border-left: 3px solid var(--accent-line);
+    border-bottom: 1px solid var(--rule);
+    padding: 7px 10px;
+    letter-spacing: 0.01em;
+    font-weight: 700;
+  }
+  :root[data-theme="dark"] .report-section h2,
+  :root:not([data-theme="light"]) .report-section h2 {
+    color: #F1F5F7 !important;
+    background: #252E36 !important;
+    border-left-color: #6FA3D2;
+    border-bottom-color: #46515A;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .report-section h2 {
+      color: #F1F5F7 !important;
+      background: #252E36 !important;
+      border-left-color: #6FA3D2;
+      border-bottom-color: #46515A;
+    }
+  }
+  .report-section .sec-desc { color: var(--ink-faint); font-size: 10.5px; margin: 0 0 8px; max-width: 90ch; }
 
   .sec-body { display: flex; gap: 16px; align-items: center; }
   .sec-body .table-col { flex: 1 1 auto; min-width: 0; }
@@ -218,7 +259,7 @@
 
   <!-- ============ INTAKE ============ -->
   <div id="intake">
-    <div class="eyebrow">Tax years 2020–2025 · Form 1040 or 1040-SR</div>
+    <div class="eyebrow">Tax years 2023–2026 · Form 1040 or 1040-SR</div>
     <h1>Turn your filed 1040 into a one-page summary</h1>
     <p class="lede">Upload the PDF of your filed federal tax return. This reads your income mix, capital-gains tax layers, bracket breakdown, and payment schedule, then lays it out as a single printable report.</p>
 
@@ -278,12 +319,18 @@
 /* =====================================================================
    CONFIG — reference tax data (independent of any uploaded return)
    ===================================================================== */
-const MIN_YEAR = 2020, MAX_YEAR = 2025;
+const MIN_YEAR = 2023, MAX_YEAR = 2026;
 
 // Ordinary federal income tax brackets, 2020-2025, all filing statuses.
 // Source: Tax Foundation historical rates & brackets table, cross-checked
 // against IRS Rev. Proc. figures reported by multiple outlets.
 const BRACKET_TABLE = {
+  2026: {
+    single: [[0,0.10],[12400,0.12],[50400,0.22],[105700,0.24],[201775,0.32],[256225,0.35],[640600,0.37]],
+    mfs:    [[0,0.10],[12400,0.12],[50400,0.22],[105700,0.24],[201775,0.32],[256225,0.35],[384350,0.37]],
+    mfj:    [[0,0.10],[24800,0.12],[100800,0.22],[211400,0.24],[403550,0.32],[512450,0.35],[768700,0.37]],
+    hoh:    [[0,0.10],[17700,0.12],[67450,0.22],[105700,0.24],[201750,0.32],[256200,0.35],[640600,0.37]],
+  },
   2025: {
     single: [[0,0.10],[11925,0.12],[48475,0.22],[103350,0.24],[197300,0.32],[250525,0.35],[626350,0.37]],
     mfs:    [[0,0.10],[11925,0.12],[48475,0.22],[103350,0.24],[197300,0.32],[250525,0.35],[375800,0.37]],
@@ -348,12 +395,159 @@ const ADDL_DEDUCTION = {
   2023: {solo:1850, married:1500},
   2024: {solo:1950, married:1550},
   2025: {solo:2000, married:1600},
+  2026: {solo:2050, married:1650},
 };
 
 const STATUS_LABEL = {
   single: 'Single', mfj: 'Married Filing Jointly', mfs: 'Married Filing Separately',
   hoh: 'Head of Household', qss: 'Qualifying Surviving Spouse', unknown: 'Unknown'
 };
+
+// A worksheet entry cell is printed as "<line-number label> <value>." —
+// e.g. "5 59,302." or "12e 15,750." — where the label itself is exactly
+// the part that shifts when the IRS reflows a form between years (see the
+// QBI-deduction bug this app hit earlier: hardcoded as line "13a", but
+// 2024's form used bare "13"). Matched generically (1-3 digits, optional
+// trailing letter) rather than as a specific number, so a field is pinned
+// to the right line by its anchor phrase — the line's own boilerplate
+// text, far more stable year to year than its printed number — instead
+// of by a number that can silently go stale.
+const QD_ENTRY_RE = /\d{1,3}[a-z]?\s+(-?[\d,]+)\s*\./;
+
+// Declarative schema for every "read one number near one anchor phrase"
+// field this app parses. Each entry names which section of the document
+// it's allowed to search (scope: 'full' | 'sch1' | 'schA' | 'qd') rather
+// than defaulting to a document-wide search, since an anchor phrase that
+// also appears — with a different meaning — elsewhere in the document has
+// twice caused this app to silently lock onto the wrong number (Schedule
+// 1-A's tips worksheet reusing the QDCGT worksheet's own boilerplate text;
+// Schedule 1's generic line-number wording colliding with an unrelated
+// part of the form). Anything that doesn't fit this single-anchor shape
+// (a compound two-phrase anchor, a multi-tier fallback chain, a
+// multi-value line, a name) is parsed directly in parseReturn() instead.
+const FIELD_SCHEMA = [
+  // The standard/itemized deduction line's own number has moved around
+  // across tax years: 2022-2024 label it bare "12"; 2025 restructured to
+  // "12e" once new sub-lines were inserted above it; 2020-2021 split it
+  // into "12a" (deduction alone) plus a since-repealed "12b" (the
+  // temporary charitable-contribution addback for non-itemizers), with
+  // "12c" as the actual total that flows into taxable income — so for
+  // those two years the total must come from 12c, not 12a, or a nonzero
+  // 12b would go uncounted. Patterns are tried in order, most specific
+  // (the 2020-2021 total) first.
+  { key: 'deduction', scope: 'full', anchor: 'Standard deduction or itemized deductions', valueRes: [/12c\s+([\d,]+)\s*\./, /12e?\s+([\d,]+)\s*\./], window: 400 },
+  { key: 'qualDividends', scope: 'full', anchor: 'Qualified dividends', valueRe: /3a\s+(-?[\d,]+)\s*\./, window: 300 },
+  { key: 'iraDistributions', scope: 'full', anchor: 'IRA distributions', valueRe: /4b\s+(-?[\d,]+)\s*\./, window: 300 },
+  { key: 'iraDistributionsGross', scope: 'full', anchor: 'IRA distributions', valueRe: /4a\s+(-?[\d,]+)\s*\./, window: 180 },
+  { key: 'pensionsGross', scope: 'full', anchor: 'Pensions and annuities', valueRe: /5a\s+(-?[\d,]+)\s*\./, window: 200 },
+  { key: 'socSecGross', scope: 'full', anchor: 'Social security benefits', valueRe: /6a\s+(-?[\d,]+)\s*\./, window: 200 },
+  // Together with ordDividends (3b) and iraDistributions (4b) above, these
+  // are exactly the addends IRS Form 1040 line 9 sums to "total income"
+  // ("Add lines 1z, 2b, 3b, 4b, 5b, 6b, 7[a], and 8"), so capturing all of
+  // them lets the income-breakdown table/chart account for the full
+  // return rather than only dividends/IRA. Line 7 is labeled "7" on some
+  // years' forms and "7a" on others (a "7b" checkbox was added in a later
+  // revision), so its value regex accepts either.
+  { key: 'wages', scope: 'full', anchor: 'Add lines 1a through 1h', valueRe: /1z\s+(-?[\d,]+)\s*\./, window: 200 },
+  { key: 'taxableInterest', scope: 'full', anchor: 'Taxable interest', valueRe: /2b\s+(-?[\d,]+)\s*\./, window: 120 },
+  { key: 'taxExemptInterest', scope: 'full', anchor: 'Tax-exempt interest', valueRe: /2a\s+(-?[\d,]+)\s*\./, window: 120 },
+  { key: 'pensions', scope: 'full', anchor: 'Pensions and annuities', valueRe: /5b\s+(-?[\d,]+)\s*\./, window: 200 },
+  { key: 'socSecTaxable', scope: 'full', anchor: 'Social security benefits', valueRe: /6b\s+(-?[\d,]+)\s*\./, window: 200 },
+  { key: 'capGain', scope: 'full', anchor: 'Capital gain or (loss)', valueRe: /7a?\s+(-?[\d,]+)\s*\./, window: 250 },
+  { key: 'adjustments', scope: 'full', anchor: 'Adjustments to income from Schedule 1, line 26', valueRe: /10\s+(-?[\d,]+)\s*\./, window: 200 },
+  // 2024 and earlier forms label this line "13"; 2025 restructured it to
+  // "13a" once a new "13b" (Schedule 1-A deduction) was added alongside
+  // it — the "a" is optional so both line numberings match.
+  { key: 'qbiDeduction', scope: 'full', anchor: 'Qualified business income deduction from Form 8995', valueRe: /13a?\s+(-?[\d,]+)\s*\./, window: 200 },
+  { key: 'sch1aDeduction', scope: 'full', anchor: 'Additional deductions from Schedule 1-A', valueRe: /13b\s+(-?[\d,]+)\s*\./, window: 200 },
+  { key: 'niit', scope: 'full', anchor: 'Net investment income tax. Attach Form 8960', valueRe: /12\s+(-?[\d,]+)\s*\./, window: 300 },
+  { key: 'ftc', scope: 'full', anchor: 'Foreign tax credit. Attach Form 1116', valueRe: /1\s+(-?[\d,]+)\s*\./, window: 300 },
+  { key: 'agi', scope: 'full', anchor: 'Subtract line 10 from line 9', valueRe: /11a?\s+(-?[\d,]+)\s*\./, window: 200 },
+  { key: 'taxableIncome', scope: 'full', anchor: 'Subtract line 14 from line 11', valueRe: /15\s+(-?[\d,]+)\s*\./, window: 250 },
+  { key: 'totalTax', scope: 'full', anchor: 'Add lines 22 and 23. This is your total tax', valueRe: /24\s+(-?[\d,]+)\s*\./, window: 150 },
+
+  // Schedule 1, Part I ("Additional Income"), scoped to that schedule's
+  // own header. Individually, rather than one generic "Schedule 1, line
+  // 8" bucket: Form 1040 line 8 is really just Schedule 1 line 10, a
+  // grand total that can be driven by any of lines 1-7 or 9 (state
+  // refunds, alimony, business income, other gains/losses,
+  // rental/royalty/partnership income, farm income, unemployment, or the
+  // 8a-8z "other income" catch-all) — attributing the whole amount to
+  // "line 8" mislabels it whenever the total actually came from a
+  // different line (e.g. rental income via line 5, as on one real return
+  // this app was tested against).
+  { key: 'sch1Refund', scope: 'sch1', anchor: 'Taxable refunds, credits, or offsets of state and local income taxes', valueRe: /1\s+(-?[\d,]+)\s*\./, window: 150 },
+  { key: 'sch1Alimony', scope: 'sch1', anchor: 'Alimony received', valueRe: /2a\s+(-?[\d,]+)\s*\./, window: 150 },
+  { key: 'sch1Business', scope: 'sch1', anchor: 'Business income or (loss). Attach Schedule C', valueRe: /3\s+(-?[\d,]+)\s*\./, window: 150 },
+  { key: 'sch1Gains', scope: 'sch1', anchor: 'Other gains or (losses)', valueRe: /4\s+(-?[\d,]+)\s*\./, window: 150 },
+  { key: 'sch1Rental', scope: 'sch1', anchor: 'Rental real estate, royalties, partnerships', valueRe: /5\s+(-?[\d,]+)\s*\./, window: 150 },
+  { key: 'sch1Farm', scope: 'sch1', anchor: 'Farm income or (loss)', valueRe: /6\s+(-?[\d,]+)\s*\./, window: 150 },
+  { key: 'sch1Unemployment', scope: 'sch1', anchor: 'Unemployment compensation', valueRe: /7\s+(-?[\d,]+)\s*\./, window: 150 },
+  // Kept only as a reconciliation check against the named 8a-8z sub-items
+  // parsed separately in parseReturn (not shown directly in the report).
+  { key: 'sch1OtherIncomeTotal', scope: 'sch1', anchor: 'Total other income. Add lines 8a through 8z', valueRe: /9\s+(-?[\d,]+)\s*\./, window: 150 },
+
+  // Schedule A (Itemized Deductions), scoped to its own header. Only
+  // actually used when the return turns out to itemize (determined later
+  // by comparing r.deduction against the standard-deduction formula, once
+  // filing status is known) — parsed speculatively here regardless, since
+  // that comparison needs r.deduction, which isn't resolved until after
+  // this schema runs.
+  { key: 'schA_medical', scope: 'schA', anchor: 'Subtract line 3 from line 1. If zero or less, enter -0-', valueRe: /4\s+(-?[\d,]+)\s*\./, window: 150 },
+  { key: 'schA_taxes', scope: 'schA', anchor: 'Add lines 5e and 6', valueRe: /7\s+(-?[\d,]+)\s*\./, window: 150 },
+  { key: 'schA_charity', scope: 'schA', anchor: 'Gifts to Charity', valueRe: /14\s+(-?[\d,]+)\s*\./, window: 400 },
+  { key: 'schA_casualty', scope: 'schA', anchor: 'Casualty and Theft Losses', valueRe: /15\s+(-?[\d,]+)\s*\./, window: 250 },
+  { key: 'schA_other', scope: 'schA', anchor: 'Other Itemized Deductions', valueRe: /16\s+(-?[\d,]+)\s*\./, window: 250 },
+
+  // Qualified Dividends and Capital Gain Tax Worksheet, scoped to its own
+  // header — see the scoping note above the schema for why this matters.
+  // The value pattern deliberately does NOT hardcode each line's specific
+  // number (the QBI-deduction bug earlier this project was exactly a
+  // hardcoded line number breaking when the IRS reflowed a form between
+  // years) — a worksheet entry is always "<label> <value>.", so the label
+  // is matched generically (1-3 digits, optional trailing letter) rather
+  // than as a fixed literal. What actually pins each field to the right
+  // number is its anchor phrase, which is the line's own boilerplate text
+  // and far more stable across years than the line's printed number.
+  { key: 'qd_line1', scope: 'qd', anchor: 'Enter the amount from Form 1040 or 1040-SR, line 15', valueRe: QD_ENTRY_RE, window: 150 },
+  { key: 'qd_line5', scope: 'qd', anchor: 'Subtract line 4 from line 1. If zero or less, enter -0-', valueRe: QD_ENTRY_RE, window: 150 },
+  { key: 'qd_line17', scope: 'qd', anchor: 'Enter the smaller of line 12 or line 16', valueRe: QD_ENTRY_RE, window: 150 },
+  { key: 'qd_line18', scope: 'qd', anchor: 'Multiply line 17 by 15', valueRe: new RegExp('%[\\s\\S]{0,20}?' + QD_ENTRY_RE.source), window: 150 },
+  { key: 'qd_line20', scope: 'qd', anchor: 'Subtract line 19 from line 10', valueRe: QD_ENTRY_RE, window: 150 },
+  { key: 'qd_line21', scope: 'qd', anchor: 'Multiply line 20 by 20', valueRe: new RegExp('%[\\s\\S]{0,20}?' + QD_ENTRY_RE.source), window: 150 },
+  { key: 'qd_line22', scope: 'qd', anchor: 'Figure the tax on the amount on line 5.', valueRe: QD_ENTRY_RE, window: 350 },
+  { key: 'qd_line25', scope: 'qd', anchor: 'Tax on all taxable income.', valueRe: QD_ENTRY_RE, window: 350 },
+];
+
+// Schedule 1 line 8 ("Other income") sub-items, 8a through 8z. Three of
+// them (8a, 8d, 8s) print their value in parentheses because they're
+// subtracted from the line-8 total rather than added — this drives both
+// the value regex (accepts an optional wrapping "( )") and negate below.
+const SCH1_LINE8_ITEMS = [
+  { code: 'a', label: 'Net Operating Loss (Schedule 1, line 8a)', shortLabel: 'Net Op. Loss', anchor: 'Net operating loss', negate: true },
+  { code: 'b', label: 'Gambling Income (Schedule 1, line 8b)', shortLabel: 'Gambling', anchor: 'Gambling' },
+  { code: 'c', label: 'Cancellation of Debt (Schedule 1, line 8c)', shortLabel: 'Cancel. of Debt', anchor: 'Cancellation of debt' },
+  { code: 'd', label: 'Foreign Earned Income Exclusion (Schedule 1, line 8d)', shortLabel: 'Foreign Inc. Excl.', anchor: 'Foreign earned income exclusion from Form 2555', negate: true },
+  { code: 'e', label: 'Income from Form 8853 (Schedule 1, line 8e)', shortLabel: 'Form 8853', anchor: 'Income from Form 8853' },
+  { code: 'f', label: 'Income from Form 8889 (Schedule 1, line 8f)', shortLabel: 'Form 8889', anchor: 'Income from Form 8889' },
+  { code: 'g', label: 'Alaska Permanent Fund Dividends (Schedule 1, line 8g)', shortLabel: 'Alaska PFD', anchor: 'Alaska Permanent Fund dividends' },
+  { code: 'h', label: 'Jury Duty Pay (Schedule 1, line 8h)', shortLabel: 'Jury Duty', anchor: 'Jury duty pay' },
+  { code: 'i', label: 'Prizes and Awards (Schedule 1, line 8i)', shortLabel: 'Prizes/Awards', anchor: 'Prizes and awards' },
+  { code: 'j', label: 'Not-for-Profit Activity Income (Schedule 1, line 8j)', shortLabel: 'Not-for-Profit', anchor: 'Activity not engaged in for profit income' },
+  { code: 'k', label: 'Stock Options (Schedule 1, line 8k)', shortLabel: 'Stock Options', anchor: 'Stock options' },
+  { code: 'l', label: 'Personal Property Rental Income (Schedule 1, line 8l)', shortLabel: 'Personal Prop. Rental', anchor: 'Income from the rental of personal property' },
+  { code: 'm', label: 'Olympic/Paralympic Medals & Prize Money (Schedule 1, line 8m)', shortLabel: 'Olympic Medals', anchor: 'Olympic and Paralympic medals' },
+  { code: 'n', label: 'Section 951(a) Inclusion (Schedule 1, line 8n)', shortLabel: 'Sec. 951(a)', anchor: 'Section 951(a) inclusion' },
+  { code: 'o', label: 'Section 951A(a) Inclusion (Schedule 1, line 8o)', shortLabel: 'Sec. 951A(a)', anchor: 'Section 951A(a) inclusion' },
+  { code: 'p', label: 'Section 461(l) Excess Business Loss Adjustment (Schedule 1, line 8p)', shortLabel: 'Sec. 461(l)', anchor: 'Section 461(l) excess business loss adjustment' },
+  { code: 'q', label: 'Taxable ABLE Account Distributions (Schedule 1, line 8q)', shortLabel: 'ABLE Acct.', anchor: 'Taxable distributions from an ABLE account' },
+  { code: 'r', label: 'Scholarship & Fellowship Grants (Schedule 1, line 8r)', shortLabel: 'Scholarship', anchor: 'Scholarship and fellowship grants not reported on Form W-2' },
+  { code: 's', label: 'Nontaxable Medicaid Waiver Payments (Schedule 1, line 8s)', shortLabel: 'Medicaid Waiver', anchor: 'Nontaxable amount of Medicaid waiver payments', negate: true },
+  { code: 't', label: 'Nonqualified Deferred Comp. / 457 Plan Income (Schedule 1, line 8t)', shortLabel: 'Deferred Comp.', anchor: 'Pension or annuity from a nonqualifed deferred compensation plan' },
+  { code: 'u', label: 'Wages Earned While Incarcerated (Schedule 1, line 8u)', shortLabel: 'Incarcerated Wages', anchor: 'Wages earned while incarcerated' },
+  { code: 'v', label: 'Digital Assets Received as Ordinary Income (Schedule 1, line 8v)', shortLabel: 'Digital Assets', anchor: 'Digital assets received as ordinary income' },
+  { code: 'z', label: 'Other Income (Schedule 1, line 8z)', shortLabel: 'Sch. 1, 8z Other', anchor: 'Other income. List type and amount' },
+];
 
 /* =====================================================================
    PDF TEXT EXTRACTION — reconstruct reading order from pdf.js items
@@ -438,6 +632,92 @@ function flex(phrase) {
 }
 function flexRe(phrase, flags) { return new RegExp(flex(phrase), flags); }
 
+// Fills r[field.key] for every entry in a FIELD_SCHEMA array, searching
+// only within the named scope's text (see the scoping note above
+// FIELD_SCHEMA's definition). A field can give one `valueRe` or, when the
+// line's own number shifts across tax years (the standard-deduction line
+// alone has been "12a"+"12c", bare "12", and "12e" in different years),
+// a `valueRes` array of patterns tried in order until one matches.
+function applyFieldSchema(scopes, schema, r) {
+  schema.forEach(f => {
+    const scopeText = scopes[f.scope];
+    if (scopeText == null) { r[f.key] = null; return; }
+    const patterns = f.valueRes || [f.valueRe];
+    let val = null;
+    for (const vre of patterns) {
+      val = toNumber(findAfter(scopeText, flexRe(f.anchor), vre, f.window || 250));
+      if (val != null) break;
+    }
+    if (val != null && f.negate) val = -Math.abs(val);
+    r[f.key] = val;
+  });
+}
+
+// Cross-checks parsed fields against the return's own arithmetic and
+// returns a list of human-readable warnings for anything that doesn't
+// reconcile — so a field that silently locked onto the wrong anchor (or
+// simply wasn't found) produces a visible flag in the report instead of a
+// number that looks fine but is quietly wrong. An empty result doesn't
+// prove every field is correct, only that the checks below didn't catch a
+// problem.
+function validateReturn(r) {
+  const warnings = [];
+  const near = (a, b, tol) => a != null && b != null && Math.abs(a - b) <= (tol == null ? 1 : tol);
+
+  // Every Form 1040 line-9 addend, parsed independently, should sum to
+  // the return's own reported total income. If the Schedule 1 sub-item
+  // breakdown doesn't itself reconcile to the Schedule 1 line-9 total
+  // (see the next check), use that total directly here instead — it's
+  // what the report actually displays in that case.
+  if (r.totalIncome != null) {
+    const sch1ItemSum = (r.sch1Line8Items || []).reduce((s, x) => s + x.value, 0);
+    const sch1Contribution = (r.sch1OtherIncomeTotal != null && !near(sch1ItemSum, r.sch1OtherIncomeTotal, 1))
+      ? r.sch1OtherIncomeTotal : sch1ItemSum;
+    const sum = [r.wages, r.taxableInterest, r.ordDividends, r.iraDistributions, r.pensions, r.socSecTaxable, r.capGain,
+      r.sch1Refund, r.sch1Alimony, r.sch1Business, r.sch1Gains, r.sch1Rental, r.sch1Farm, r.sch1Unemployment, sch1Contribution]
+      .reduce((s, x) => s + (x || 0), 0);
+    if (!near(sum, r.totalIncome, 1)) {
+      warnings.push(`Parsed income lines sum to ${fmtMoney(sum)}, but the return reports total income (Form 1040, line 9) of ${fmtMoney(r.totalIncome)}.`);
+    }
+  }
+
+  // Schedule 1's named 8a-8z sub-items vs. its own reported line-9 total.
+  if (r.sch1OtherIncomeTotal != null && (r.sch1Line8Items || []).length) {
+    const sum = r.sch1Line8Items.reduce((s, x) => s + x.value, 0);
+    if (!near(sum, r.sch1OtherIncomeTotal, 1)) {
+      warnings.push(`Schedule 1's named "Other income" sub-items sum to ${fmtMoney(sum)}, but line 9 reports ${fmtMoney(r.sch1OtherIncomeTotal)} \u2014 the Income Breakdown shows the combined total for that section instead of naming the source.`);
+    }
+  }
+
+  // QDCGT worksheet: the three tax pieces (0/15% bracket, 20% bracket,
+  // ordinary-rate tax) should sum to the worksheet's own line 25 total.
+  if (r.qd_line25 != null) {
+    const sum = (r.qd_line18 || 0) + (r.qd_line21 || 0) + (r.qd_line22 || 0);
+    if (!near(sum, r.qd_line25, 1)) {
+      warnings.push(`Qualified Dividends & Capital Gain Tax Worksheet: the 15%, 20%, and ordinary-rate tax amounts sum to ${fmtMoney(sum)}, but line 25 reports ${fmtMoney(r.qd_line25)}.`);
+    }
+  }
+
+  // AGI = total income - adjustments (Form 1040, line 11a's own formula).
+  if (r.totalIncome != null && r.agi != null) {
+    const expected = r.totalIncome - (r.adjustments || 0);
+    if (!near(expected, r.agi, 1)) {
+      warnings.push(`Total income minus adjustments (${fmtMoney(expected)}) doesn't match the reported AGI (${fmtMoney(r.agi)}).`);
+    }
+  }
+
+  // Taxable income = AGI - standard/itemized deduction - QBI deduction -
+  // Schedule 1-A deduction (Form 1040, line 15's own formula).
+  if (r.agi != null && r.deduction != null && r.taxableIncome != null) {
+    const expected = Math.max(0, r.agi - r.deduction - (r.qbiDeduction || 0) - (r.sch1aDeduction || 0));
+    if (!near(expected, r.taxableIncome, 1)) {
+      warnings.push(`AGI minus deductions (${fmtMoney(expected)}) doesn't match the reported taxable income (${fmtMoney(r.taxableIncome)}).`);
+    }
+  }
+
+  return warnings;
+}
+
 function parseReturn(text) {
   const r = {};
 
@@ -450,12 +730,16 @@ function parseReturn(text) {
   if (!m) m = /Form\s*1040(?:-SR)?\s*\((\d{4})\)/.exec(text);
   r.taxYear = m ? parseInt(m[1], 10) : null;
 
-  r.deduction = toNumber(findAfter(text,
-    flexRe('Standard deduction or itemized deductions'),
-    /12e?\s+([\d,]+)\s*\./, 250));
-
+  // SSNs are sometimes rendered space-separated ("498 82 4336") and
+  // sometimes hyphenated ("368-60-8101") depending on the PDF generator;
+  // matching only the space form caused a real bug — a hyphenated
+  // spouse SSN went undetected, hasSpouse came back false, and a genuine
+  // joint return was misclassified as Qualifying Surviving Spouse instead
+  // of Married Filing Jointly. Both separators are accepted everywhere an
+  // SSN pattern is matched.
+  const SSN_RE_SRC = '\\d{3}[\\s-]+\\d{2}[\\s-]+\\d{4}';
   const spouseAnchorRe = /Spouse['\u2019]s\s+social\s+security\s+number/;
-  r.hasSpouse = new RegExp(spouseAnchorRe.source + '[\\s\\S]{0,400}?(\\d{3}\\s+\\d{2}\\s+\\d{4})').test(text);
+  r.hasSpouse = new RegExp(spouseAnchorRe.source + '[\\s\\S]{0,400}?(' + SSN_RE_SRC + ')').test(text);
 
   // Filing status, straight from the checkbox row at the top of Form 1040
   // page 1. Most e-file PDFs draw the selected box's mark as vector
@@ -464,44 +748,46 @@ function parseReturn(text) {
   // it doesn't, determineFilingStatus() below falls back to inference.
   r.filingStatusFromCheckbox = detectFilingStatusCheckbox(text);
 
-  r.qualDividends = toNumber(findAfter(text, flexRe('Qualified dividends'), /3a\s+(-?[\d,]+)\s*\./, 300));
-  r.ordDividends  = toNumber(findAfter(text, new RegExp(flex('Qualified dividends') + '[\\s\\S]*?' + flex('Ordinary dividends')), /3b\s+(-?[\d,]+)\s*\./, 300));
-  r.iraDistributions = toNumber(findAfter(text, flexRe('IRA distributions'), /4b\s+(-?[\d,]+)\s*\./, 300));
-
-  // Other Form 1040 income lines (1z, 2b, 5b, 6b, 7/7a, 8) — together with
-  // 3b and 4b above, these are exactly the addends IRS Form 1040 line 9
-  // sums to "total income" ("Add lines 1z, 2b, 3b, 4b, 5b, 6b, 7[a], and
-  // 8"), so capturing all of them lets the income-breakdown table and
-  // chart account for the full return rather than only dividends/IRA.
-  // Line 7 is labeled "7" on some years' forms and "7a" on others (a "7b"
-  // checkbox was added in later revisions), so the value regex accepts
-  // either.
-  r.wages = toNumber(findAfter(text, flexRe('Add lines 1a through 1h'), /1z\s+(-?[\d,]+)\s*\./, 200));
-  r.taxableInterest = toNumber(findAfter(text, flexRe('Taxable interest'), /2b\s+(-?[\d,]+)\s*\./, 120));
-  r.pensions = toNumber(findAfter(text, flexRe('Pensions and annuities'), /5b\s+(-?[\d,]+)\s*\./, 200));
-  r.socSecTaxable = toNumber(findAfter(text, flexRe('Social security benefits'), /6b\s+(-?[\d,]+)\s*\./, 200));
-  r.capGain = toNumber(findAfter(text, flexRe('Capital gain or (loss)'), /7a?\s+(-?[\d,]+)\s*\./, 250));
-
-  // Schedule 1, Part I ("Additional Income") individually, rather than one
-  // generic "Schedule 1, line 8" bucket: Form 1040 line 8 is really just
-  // Schedule 1 line 10, a grand total that can be driven by any of lines
-  // 1-7 or 9 (state refunds, alimony, business income, other gains/losses,
-  // rental/royalty/partnership income, farm income, unemployment, or the
-  // 8a-8z "other income" catch-all) — attributing the whole amount to
-  // "line 8" mislabels it whenever the total actually came from a
-  // different line (e.g. rental income via line 5). Scoped to start at
-  // Schedule 1's own header so its generic line-number phrasing ("1",
-  // "3", "5", "7"...) can't collide with an earlier, unrelated part of
-  // the document.
+  // Every field below this point is a "read one number near one anchor
+  // phrase" lookup, which is exactly the pattern that caused two separate
+  // real bugs earlier: an anchor phrase that also appears — with
+  // different meaning — elsewhere in the document (Schedule 1-A's tips
+  // worksheet reusing the QDCGT worksheet's own boilerplate; Schedule 1's
+  // generic line-number wording colliding with an unrelated part of the
+  // form), silently locking onto the wrong number instead of failing
+  // loudly. FIELD_SCHEMA makes each field declare which section of the
+  // document it's allowed to search (its "scope") up front, so scoping is
+  // the default instead of something only added after a bug is found; the
+  // reconciliation checks in validateReturn() below then cross-check the
+  // results against the return's own arithmetic and surface anything that
+  // doesn't add up, rather than silently trusting every parsed number.
+  const scopes = { full: text };
   const sch1HeaderM = flexRe('Additional Income and Adjustments to Income').exec(text);
-  const sch1Text = sch1HeaderM ? text.slice(sch1HeaderM.index) : text;
-  r.sch1Refund   = toNumber(findAfter(sch1Text, flexRe('Taxable refunds, credits, or offsets of state and local income taxes'), /1\s+(-?[\d,]+)\s*\./, 150));
-  r.sch1Alimony  = toNumber(findAfter(sch1Text, flexRe('Alimony received'), /2a\s+(-?[\d,]+)\s*\./, 150));
-  r.sch1Business = toNumber(findAfter(sch1Text, flexRe('Business income or (loss). Attach Schedule C'), /3\s+(-?[\d,]+)\s*\./, 150));
-  r.sch1Gains    = toNumber(findAfter(sch1Text, flexRe('Other gains or (losses)'), /4\s+(-?[\d,]+)\s*\./, 150));
-  r.sch1Rental   = toNumber(findAfter(sch1Text, flexRe('Rental real estate, royalties, partnerships'), /5\s+(-?[\d,]+)\s*\./, 150));
-  r.sch1Farm     = toNumber(findAfter(sch1Text, flexRe('Farm income or (loss)'), /6\s+(-?[\d,]+)\s*\./, 150));
-  r.sch1Unemployment = toNumber(findAfter(sch1Text, flexRe('Unemployment compensation'), /7\s+(-?[\d,]+)\s*\./, 150));
+  scopes.sch1 = sch1HeaderM ? text.slice(sch1HeaderM.index) : text;
+  const schAHeaderM = flexRe('Itemized Deductions').exec(text);
+  scopes.schA = schAHeaderM ? text.slice(schAHeaderM.index) : null;
+  const qdHeaderM = flexRe('Qualified Dividends and Capital Gain Tax Worksheet').exec(text);
+  scopes.qd = qdHeaderM ? text.slice(qdHeaderM.index) : text;
+
+  applyFieldSchema(scopes, FIELD_SCHEMA, r);
+
+  // Fields whose anchor is a *sequence* of two phrases (the value sits
+  // after both, in order) rather than one — doesn't fit FIELD_SCHEMA's
+  // single-anchor shape, so handled directly.
+  r.ordDividends = toNumber(findAfter(text, new RegExp(flex('Qualified dividends') + '[\\s\\S]*?' + flex('Ordinary dividends')), /3b\s+(-?[\d,]+)\s*\./, 300));
+  r.schA_interest = scopes.schA ? toNumber(findAfter(scopes.schA, new RegExp(flex('Interest You Paid') + '[\\s\\S]*?' + flex('Add lines 8e and 9')), /10\s+(-?[\d,]+)\s*\./, 150)) : null;
+
+  // Total income (line 9) tries a few anchor phrasings with different
+  // windows since the exact enumeration text ("...7," vs "...7a,") shifts
+  // slightly by year — a tiered fallback rather than one fixed anchor, so
+  // it doesn't fit FIELD_SCHEMA's single-anchor shape either.
+  r.totalIncome = toNumber(findAfter(text, flexRe('This is your total income'), /9\s+(-?[\d,]+)\s*\./, 300));
+  if (r.totalIncome == null) {
+    r.totalIncome = toNumber(findAfter(text, flexRe('Add lines 1z, 2b, 3b, 4b, 5b, 6b'), /9\s+(-?[\d,]+)\s*\./, 300));
+  }
+  if (r.totalIncome == null) {
+    r.totalIncome = toNumber(findAfter(text, flexRe('total income'), /9\s+(-?[\d,]+)\s*\./, 200));
+  }
 
   // Schedule 1 line 8 ("Other income") is itself a list of ~20 named
   // sub-items (8a-8z) that all roll up into one line-9 total — showing
@@ -513,94 +799,17 @@ function parseReturn(text) {
   // in parentheses because they're subtracted from the line-8 total
   // rather than added, so their value regex accepts an optional
   // wrapping "( )" and the result is negated.
-  const SCH1_LINE8_ITEMS = [
-    { code: 'a', label: 'Net Operating Loss (Schedule 1, line 8a)', shortLabel: 'Net Op. Loss', anchor: 'Net operating loss', negate: true },
-    { code: 'b', label: 'Gambling Income (Schedule 1, line 8b)', shortLabel: 'Gambling', anchor: 'Gambling' },
-    { code: 'c', label: 'Cancellation of Debt (Schedule 1, line 8c)', shortLabel: 'Cancel. of Debt', anchor: 'Cancellation of debt' },
-    { code: 'd', label: 'Foreign Earned Income Exclusion (Schedule 1, line 8d)', shortLabel: 'Foreign Inc. Excl.', anchor: 'Foreign earned income exclusion from Form 2555', negate: true },
-    { code: 'e', label: 'Income from Form 8853 (Schedule 1, line 8e)', shortLabel: 'Form 8853', anchor: 'Income from Form 8853' },
-    { code: 'f', label: 'Income from Form 8889 (Schedule 1, line 8f)', shortLabel: 'Form 8889', anchor: 'Income from Form 8889' },
-    { code: 'g', label: 'Alaska Permanent Fund Dividends (Schedule 1, line 8g)', shortLabel: 'Alaska PFD', anchor: 'Alaska Permanent Fund dividends' },
-    { code: 'h', label: 'Jury Duty Pay (Schedule 1, line 8h)', shortLabel: 'Jury Duty', anchor: 'Jury duty pay' },
-    { code: 'i', label: 'Prizes and Awards (Schedule 1, line 8i)', shortLabel: 'Prizes/Awards', anchor: 'Prizes and awards' },
-    { code: 'j', label: 'Not-for-Profit Activity Income (Schedule 1, line 8j)', shortLabel: 'Not-for-Profit', anchor: 'Activity not engaged in for profit income' },
-    { code: 'k', label: 'Stock Options (Schedule 1, line 8k)', shortLabel: 'Stock Options', anchor: 'Stock options' },
-    { code: 'l', label: 'Personal Property Rental Income (Schedule 1, line 8l)', shortLabel: 'Personal Prop. Rental', anchor: 'Income from the rental of personal property' },
-    { code: 'm', label: 'Olympic/Paralympic Medals & Prize Money (Schedule 1, line 8m)', shortLabel: 'Olympic Medals', anchor: 'Olympic and Paralympic medals' },
-    { code: 'n', label: 'Section 951(a) Inclusion (Schedule 1, line 8n)', shortLabel: 'Sec. 951(a)', anchor: 'Section 951(a) inclusion' },
-    { code: 'o', label: 'Section 951A(a) Inclusion (Schedule 1, line 8o)', shortLabel: 'Sec. 951A(a)', anchor: 'Section 951A(a) inclusion' },
-    { code: 'p', label: 'Section 461(l) Excess Business Loss Adjustment (Schedule 1, line 8p)', shortLabel: 'Sec. 461(l)', anchor: 'Section 461(l) excess business loss adjustment' },
-    { code: 'q', label: 'Taxable ABLE Account Distributions (Schedule 1, line 8q)', shortLabel: 'ABLE Acct.', anchor: 'Taxable distributions from an ABLE account' },
-    { code: 'r', label: 'Scholarship & Fellowship Grants (Schedule 1, line 8r)', shortLabel: 'Scholarship', anchor: 'Scholarship and fellowship grants not reported on Form W-2' },
-    { code: 's', label: 'Nontaxable Medicaid Waiver Payments (Schedule 1, line 8s)', shortLabel: 'Medicaid Waiver', anchor: 'Nontaxable amount of Medicaid waiver payments', negate: true },
-    { code: 't', label: 'Nonqualified Deferred Comp. / 457 Plan Income (Schedule 1, line 8t)', shortLabel: 'Deferred Comp.', anchor: 'Pension or annuity from a nonqualifed deferred compensation plan' },
-    { code: 'u', label: 'Wages Earned While Incarcerated (Schedule 1, line 8u)', shortLabel: 'Incarcerated Wages', anchor: 'Wages earned while incarcerated' },
-    { code: 'v', label: 'Digital Assets Received as Ordinary Income (Schedule 1, line 8v)', shortLabel: 'Digital Assets', anchor: 'Digital assets received as ordinary income' },
-    { code: 'z', label: 'Other Income (Schedule 1, line 8z)', shortLabel: 'Sch. 1, 8z Other', anchor: 'Other income. List type and amount' },
-  ];
   r.sch1Line8Items = [];
   SCH1_LINE8_ITEMS.forEach(item => {
     const valueRe = item.negate
       ? new RegExp('8' + item.code + '\\s*\\(\\s*(-?[\\d,]+)\\s*\\)')
       : new RegExp('8' + item.code + '\\s+(-?[\\d,]+)\\s*\\.');
-    let val = toNumber(findAfter(sch1Text, flexRe(item.anchor), valueRe, 150));
+    let val = toNumber(findAfter(scopes.sch1, flexRe(item.anchor), valueRe, 150));
     if (val != null && item.negate) val = -Math.abs(val);
     if (val != null && val !== 0) {
       r.sch1Line8Items.push({ label: item.label, shortLabel: item.shortLabel, value: val });
     }
   });
-  // Kept only as a sanity check when rendering (not shown directly): the
-  // sum of the parsed sub-items above should match this reported total.
-  r.sch1OtherIncomeTotal = toNumber(findAfter(sch1Text, flexRe('Total other income. Add lines 8a through 8z'), /9\s+(-?[\d,]+)\s*\./, 150));
-
-  // Schedule A (Itemized Deductions), scoped to its own header for the
-  // same reason as Schedule 1 above. Only used when the return actually
-  // itemizes (detected later by comparing r.deduction against the
-  // standard-deduction formula) — parsed speculatively here regardless,
-  // since that comparison needs r.deduction, which isn't set yet at this
-  // point in parseReturn.
-  const schAHeaderM = flexRe('Itemized Deductions').exec(text);
-  const schAText = schAHeaderM ? text.slice(schAHeaderM.index) : null;
-  if (schAText) {
-    r.schA_medical = toNumber(findAfter(schAText, flexRe('Subtract line 3 from line 1. If zero or less, enter -0-'), /4\s+(-?[\d,]+)\s*\./, 150));
-    r.schA_taxes = toNumber(findAfter(schAText, flexRe('Add lines 5e and 6'), /7\s+(-?[\d,]+)\s*\./, 150));
-    r.schA_interest = toNumber(findAfter(schAText, new RegExp(flex('Interest You Paid') + '[\\s\\S]*?' + flex('Add lines 8e and 9')), /10\s+(-?[\d,]+)\s*\./, 150));
-    r.schA_charity = toNumber(findAfter(schAText, flexRe('Gifts to Charity'), /14\s+(-?[\d,]+)\s*\./, 400));
-    r.schA_casualty = toNumber(findAfter(schAText, flexRe('Casualty and Theft Losses'), /15\s+(-?[\d,]+)\s*\./, 250));
-    r.schA_other = toNumber(findAfter(schAText, flexRe('Other Itemized Deductions'), /16\s+(-?[\d,]+)\s*\./, 250));
-  }
-
-  // Total income (line 9): try a couple of anchor phrasings since exact
-  // enumeration text ("...7," vs "...7a,") shifts slightly by year, and the
-  // words right before the line-9 value ("total income") are sometimes
-  // separated from the rest of the sentence by extra alignment spaces.
-  r.totalIncome = toNumber(findAfter(text, flexRe('This is your total income'), /9\s+(-?[\d,]+)\s*\./, 300));
-  if (r.totalIncome == null) {
-    r.totalIncome = toNumber(findAfter(text, flexRe('Add lines 1z, 2b, 3b, 4b, 5b, 6b'), /9\s+(-?[\d,]+)\s*\./, 300));
-  }
-  if (r.totalIncome == null) {
-    r.totalIncome = toNumber(findAfter(text, flexRe('total income'), /9\s+(-?[\d,]+)\s*\./, 200));
-  }
-
-  // Qualified Dividends and Capital Gain Tax Worksheet. Scoped to start at
-  // the worksheet's own header rather than searching the whole document:
-  // Schedule 1-A's tips/overtime deduction parts (new for 2025) reuse very
-  // similar generic "Subtract line X from line Y ... enter -0-" boilerplate
-  // and appear earlier in the document, so an unscoped search can lock
-  // onto the wrong worksheet's line 5 (or beyond).
-  const qdHeaderM = flexRe('Qualified Dividends and Capital Gain Tax Worksheet').exec(text);
-  const qdText = qdHeaderM ? text.slice(qdHeaderM.index) : text;
-  r.qd_line1  = toNumber(findAfter(qdText, flexRe('Enter the amount from Form 1040 or 1040-SR, line 15'), /1\s+(-?[\d,]+)\s*\./, 150));
-  r.qd_line5  = toNumber(findAfter(qdText, flexRe('Subtract line 4 from line 1. If zero or less, enter -0-'), /5\s+(-?[\d,]+)\s*\./, 150));
-  r.qd_line17 = toNumber(findAfter(qdText, flexRe('Enter the smaller of line 12 or line 16'), /17\s+(-?[\d,]+)\s*\./, 150));
-  r.qd_line18 = toNumber(findAfter(qdText, flexRe('Multiply line 17 by 15'), /%[\s\S]{0,20}?18\s+(-?[\d,]+)\s*\./, 150));
-  r.qd_line20 = toNumber(findAfter(qdText, flexRe('Subtract line 19 from line 10'), /20\s+(-?[\d,]+)\s*\./, 150));
-  r.qd_line21 = toNumber(findAfter(qdText, flexRe('Multiply line 20 by 20'), /%[\s\S]{0,20}?21\s+(-?[\d,]+)\s*\./, 150));
-  r.qd_line22 = toNumber(findAfter(qdText, flexRe('Figure the tax on the amount on line 5.'), /22\s+(-?[\d,]+)\s*\./, 350));
-  r.qd_line25 = toNumber(findAfter(qdText, flexRe('Tax on all taxable income.'), /25\s+(-?[\d,]+)\s*\./, 350));
-
-  r.niit = toNumber(findAfter(text, flexRe('Net investment income tax. Attach Form 8960'), /12\s+(-?[\d,]+)\s*\./, 300));
-  r.ftc  = toNumber(findAfter(text, flexRe('Foreign tax credit. Attach Form 1116'), /1\s+(-?[\d,]+)\s*\./, 300));
 
   const reqStr = findAfter(text, flexRe('For fiscal year filers, see instructions'), /10\s+([\d,.\s]+?)\n/, 250);
   if (reqStr) r.required2210 = reqStr.trim().split(/\s+/).map(toNumber);
@@ -611,15 +820,40 @@ function parseReturn(text) {
   r.refund = toNumber(findAfter(text, flexRe('If line 33 is more than line 24, subtract line 24 from line 33'), /[\s\S]{0,120}?34\s+(-?[\d,]+)\s*\./, 250));
   r.owed   = toNumber(findAfter(text, flexRe('Subtract line 33 from line 24'), /[\s\S]{0,250}?37\s+(-?[\d,]+)\s*\./, 350));
 
-  r.agi = toNumber(findAfter(text, flexRe('Subtract line 10 from line 9'), /11a?\s+(-?[\d,]+)\s*\./, 200));
-  r.taxableIncome = toNumber(findAfter(text, flexRe('Subtract line 14 from line 11'), /15\s+(-?[\d,]+)\s*\./, 250));
-  r.totalTax = toNumber(findAfter(text, flexRe('Add lines 22 and 23. This is your total tax'), /24\s+(-?[\d,]+)\s*\./, 150));
+  // Some PDF generators (older TurboTax exports especially) don't always
+  // append the Qualified Dividends and Capital Gain Tax Worksheet as a
+  // separate work-paper even when the return has qualified dividends or
+  // capital gains, which otherwise leaves the Ordinary Income Tax Bracket
+  // Breakdown section with nothing to show. That section only needs the
+  // worksheet's line 5 ("ordinary taxable income"), which can be derived
+  // directly from numbers already parsed from Form 1040 itself using the
+  // same formula the worksheet's own lines 1-4 use (taxable income minus
+  // qualified dividends minus net capital gain) — this holds regardless
+  // of whether the more complex Schedule D Tax Worksheet also applies,
+  // since that only changes how tax on the *preferential-rate* portion is
+  // computed, not which portion of taxable income counts as ordinary. The
+  // full Tax Breakdown (QDCGT) section still requires the real worksheet
+  // and stays empty without it — only the bracket breakdown, which needs
+  // nothing beyond this one derived number, is filled in this way.
+  let qd5Derived = false;
+  if (r.qd_line5 == null && r.taxableIncome != null && r.totalTax > 0) {
+    const preferentialIncome = (r.qualDividends || 0) + Math.max(0, r.capGain || 0);
+    if (preferentialIncome > 0) {
+      r.qd_line5 = Math.max(0, r.taxableIncome - preferentialIncome);
+      qd5Derived = true;
+    }
+  }
 
   // Taxpayer name, for the report header. Best-effort only — if this
   // shifts in some other software's PDF, the report still works, just
   // without a name line. The SSN itself is intentionally never parsed.
-  const nameM = new RegExp(flex('Your first name and middle initial Last name Your social security number') + '\\s*([A-Za-z][A-Za-z .\\-\']*?)\\s+\\d{3}\\s+\\d{2}\\s+\\d{4}').exec(text);
+  const nameM = new RegExp(flex('Your first name and middle initial Last name Your social security number') + '\\s*([A-Za-z][A-Za-z .\\-\']*?)\\s+' + SSN_RE_SRC).exec(text);
   r.taxpayerName = nameM ? nameM[1].trim() : null;
+
+  r.parseWarnings = validateReturn(r);
+  if (qd5Derived) {
+    r.parseWarnings.push('The Qualified Dividends & Capital Gain Tax Worksheet page itself wasn\u2019t found in this PDF, so the Ordinary Income Tax Bracket Breakdown uses an ordinary-taxable-income figure derived from Form 1040\u2019s own numbers rather than read directly from that worksheet.');
+  }
 
   return r;
 }
@@ -713,6 +947,28 @@ function computeOrdinaryBracketBreakdown(ordinaryIncome, year, status) {
     rows.push({ rate, lower, upper, amount: amt, tax: amt * rate });
   }
   return rows;
+}
+
+function computeTaxExemptIncomeBreakdown(r, cutoffFraction) {
+  const items = [];
+  const add = (label, shortLabel, value, color) => { if (value != null && value > 0) items.push({label, shortLabel, value, color}); };
+  add('Tax-Exempt Interest (line 2a)', 'Tax-Exempt Interest', r.taxExemptInterest, 'var(--c-gold)');
+  const untaxedIRA = Math.max(0, (r.iraDistributionsGross || 0) - (r.iraDistributions || 0));
+  const untaxedPension = Math.max(0, (r.pensionsGross || 0) - (r.pensions || 0));
+  const untaxedSS = Math.max(0, (r.socSecGross || 0) - (r.socSecTaxable || 0));
+  add('IRA Distributions — Nontaxable (line 4a − 4b)', 'Nontaxable IRA', untaxedIRA, 'var(--c-green)');
+  add('Pensions & Annuities — Nontaxable (line 5a − 5b)', 'Nontaxable Pensions', untaxedPension, 'var(--c-purple)');
+  add('Social Security — Nontaxable (line 6a − 6b)', 'Nontaxable Soc. Sec.', untaxedSS, 'var(--c-red)');
+  const total = items.reduce((s,x)=>s+x.value,0);
+  if (!(total > 0)) return null;
+  const threshold = (cutoffFraction == null || isNaN(cutoffFraction)) ? 0.05 : cutoffFraction;
+  const major = items.filter(x => x.value / total >= threshold);
+  const minor = items.filter(x => x.value / total < threshold);
+  const rows = [...major];
+  if (minor.length === 1) rows.push(minor[0]);
+  else if (minor.length > 1) rows.push({label:'Other Tax-Exempt Income ('+minor.map(x=>x.shortLabel).join(', ')+')',shortLabel:'Other Tax-Exempt',value:minor.reduce((s,x)=>s+x.value,0),color:'var(--c-other)'});
+  rows.sort((a,b)=>b.value-a.value);
+  return {total, rows, posRows:rows};
 }
 
 function computeIncomeBreakdown(r, cutoffFraction) {
@@ -1019,6 +1275,33 @@ function sectionOpen(title, desc) {
 }
 const sectionClose = '</section>';
 
+// A labeled row with a color swatch, followed by any number of already-
+// formatted numeric cells. Used for every breakdown table (income, tax
+// exempt income, tax brackets, deductions).
+function swatchRow(color, label, cells) {
+  return `<tr><td><span class="swatch" style="background:${color}"></span>${esc(label)}</td>${cells.map(c => `<td class="num">${c}</td>`).join('')}</tr>`;
+}
+// The bolded total row at the bottom of a breakdown table.
+function totalRow(label, cells) {
+  return `<tr class="total"><td>${esc(label)}</td>${cells.map(c => `<td class="num">${c}</td>`).join('')}</tr>`;
+}
+// headers: [{label, num?}]. bodyRows: pre-built <tr> HTML (from swatchRow/totalRow).
+function dataTable(headers, bodyRows) {
+  const head = headers.map(h => `<th${h.num ? ' class="num"' : ''}>${esc(h.label)}</th>`).join('');
+  return `<table class="datatable"><thead><tr>${head}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+}
+// The two-column layout (table + pie chart) shared by every breakdown section.
+function tableWithChart(tableHtml, chartHtml) {
+  return `<div class="sec-body"><div class="table-col">${tableHtml}</div><div class="chart-col"><div class="chart-wrap">${chartHtml}</div></div></div>`;
+}
+// Compact "Item / Amount" table for one-off figures (standard deduction,
+// NIIT, foreign tax credit, refund/owed) that don't need a breakdown table.
+// rows: [[label, amount], ...]
+function kvTable(rows) {
+  const body = rows.map(([label, value]) => `<tr><td>${esc(label)}</td><td class="num">${fmtMoney(value)}</td></tr>`).join('');
+  return `<table class="datatable compact-kv"><thead><tr><th>Item</th><th class="num">Amount</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
 function buildReport(r, status, cutoffFraction) {
   const statusLabel = STATUS_LABEL[status] || 'Unknown';
   let html = '';
@@ -1047,20 +1330,27 @@ function buildReport(r, status, cutoffFraction) {
     </div>
   </div>`;
 
+  // A validation pass in parseReturn() cross-checks parsed fields against
+  // the return's own arithmetic; anything that didn't reconcile is
+  // surfaced here rather than silently trusted, since a mis-anchored
+  // field can produce a number that looks perfectly plausible on its own.
+  if (r.parseWarnings && r.parseWarnings.length) {
+    html += `<div class="parse-warnings">
+      <b>\u26a0 ${r.parseWarnings.length} parsing check${r.parseWarnings.length > 1 ? 's' : ''} didn\u2019t reconcile against this return\u2019s own totals:</b>
+      <ul>${r.parseWarnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>
+      The figures below are still shown, but double-check them against your actual return before relying on them.
+    </div>`;
+  }
+
   // ---- Section: Income Breakdown ----
   const inc = computeIncomeBreakdown(r, cutoffFraction);
-  html += sectionOpen('Income Breakdown');
+  html += sectionOpen('Taxable Income Breakdown');
   if (inc) {
-    let rows = '';
-    inc.rows.forEach(row => {
-      const pct = (row.value / inc.total) * 100;
-      rows += `<tr><td><span class="swatch" style="background:${row.color}"></span>${esc(row.label)}</td><td class="num">${fmtMoney(row.value)}</td><td class="num">${fmtPct(pct)}</td></tr>`;
-    });
-    rows += `<tr class="total"><td>Total Income (line 9)</td><td class="num">${fmtMoney(inc.total)}</td><td class="num">100.0%</td></tr>`;
-    html += `<div class="sec-body">
-      <div class="table-col"><table class="datatable"><thead><tr><th>Income Category</th><th class="num">Amount</th><th class="num">% of Total Income</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="chart-col"><div class="chart-wrap">${renderPie(inc.posRows.map(x=>({label:x.label, shortLabel:x.shortLabel, value:x.value, color:x.color})), {pieTotal: inc.shownSum})}</div></div>
-    </div>`;
+    const rows = inc.rows.map(row => swatchRow(row.color, row.label, [fmtMoney(row.value), fmtPct((row.value / inc.total) * 100)])).join('')
+      + totalRow('Total Income (line 9)', [fmtMoney(inc.total), '100.0%']);
+    const table = dataTable([{label:'Income Category'}, {label:'Amount', num:true}, {label:'% of Total Income', num:true}], rows);
+    const chart = renderPie(inc.posRows.map(x=>({label:x.label, shortLabel:x.shortLabel, value:x.value, color:x.color})), {pieTotal: inc.shownSum});
+    html += tableWithChart(table, chart);
     if (inc.hasNegative) {
       html += `<div class="footnote">A capital loss or other negative income adjustment on this return reduces total income but can\u2019t be drawn as a pie slice, so it\u2019s reflected in the table above only.</div>`;
     }
@@ -1070,20 +1360,30 @@ function buildReport(r, status, cutoffFraction) {
   }
   html += sectionClose;
 
+  // ---- Section: Tax Exempt Income ----
+  const taxEx = computeTaxExemptIncomeBreakdown(r, cutoffFraction);
+  html += sectionOpen('Tax Exempt Income', 'Nontaxable amounts reported alongside taxable income on Form 1040.');
+  if (taxEx) {
+    const rows = taxEx.rows.map(row => swatchRow(row.color, row.label, [fmtMoney(row.value), fmtPct((row.value / taxEx.total) * 100)])).join('')
+      + totalRow('Total Tax Exempt Income', [fmtMoney(taxEx.total), '100.0%']);
+    const table = dataTable([{label:'Income Category'}, {label:'Amount', num:true}, {label:'% of Tax Exempt Income', num:true}], rows);
+    const chart = renderPie(taxEx.posRows.map(x=>({label:x.label, shortLabel:x.shortLabel, value:x.value, color:x.color})), {pieTotal: taxEx.total});
+    html += tableWithChart(table, chart);
+    html += `<div class="footnote">Tax-exempt amounts are reported separately from Form 1040 line 9 total income and therefore are not included in the taxable-income pie chart.</div>`;
+  } else {
+    html += `<p class="chart-empty">No separately identifiable tax-exempt income was found in this return.</p>`;
+  }
+  html += sectionClose;
+
   // ---- Section: Tax Breakdown (QDCGT worksheet) ----
   const taxBd = computeTaxBreakdown(r);
   html += sectionOpen('Tax Breakdown \u2014 Qualified Dividends & Capital Gain Tax Worksheet', 'All line references from the QD & Capital Gain Tax Worksheet. Total Tax = line 25.');
   if (taxBd && taxBd.rows.length) {
-    let rows = '';
-    taxBd.rows.forEach(row => {
-      const pct = (row.tax / taxBd.total) * 100;
-      rows += `<tr><td><span class="swatch" style="background:${row.color}"></span>${esc(row.label)}</td><td class="num">${fmtMoney(row.amount)}</td><td class="num">${fmtMoney(row.tax)}</td><td class="num">${fmtPct(pct)}</td></tr>`;
-    });
-    rows += `<tr class="total"><td>Total Tax (line 25)</td><td class="num"></td><td class="num">${fmtMoney(taxBd.total)}</td><td class="num">100.0%</td></tr>`;
-    html += `<div class="sec-body">
-      <div class="table-col"><table class="datatable"><thead><tr><th>Category</th><th class="num">Income Amount</th><th class="num">Tax Amount</th><th class="num">% of Total Tax</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="chart-col"><div class="chart-wrap">${renderPie(taxBd.rows.map(x=>({label:x.label, shortLabel:x.shortLabel, value:x.amount, color:x.color})))}</div></div>
-    </div>`;
+    const rows = taxBd.rows.map(row => swatchRow(row.color, row.label, [fmtMoney(row.amount), fmtMoney(row.tax), fmtPct((row.tax / taxBd.total) * 100)])).join('')
+      + totalRow('Total Tax (line 25)', ['', fmtMoney(taxBd.total), '100.0%']);
+    const table = dataTable([{label:'Category'}, {label:'Income Amount', num:true}, {label:'Tax Amount', num:true}, {label:'% of Total Tax', num:true}], rows);
+    const chart = renderPie(taxBd.rows.map(x=>({label:x.label, shortLabel:x.shortLabel, value:x.amount, color:x.color})));
+    html += tableWithChart(table, chart);
   } else {
     html += `<p class="chart-empty">Qualified Dividends and Capital Gain Tax Worksheet wasn't found in this PDF (it's only generated when there are qualified dividends or capital gains).</p>`;
   }
@@ -1094,20 +1394,17 @@ function buildReport(r, status, cutoffFraction) {
     const brRows = computeOrdinaryBracketBreakdown(r.qd_line5, r.taxYear, status);
     html += sectionOpen('Ordinary Income Tax Bracket Breakdown', `Ordinary taxable income ${fmtMoney(r.qd_line5)} across ${r.taxYear} ${statusLabel} brackets:`);
     if (brRows.length) {
-      let rows = '';
       const lineTotal = r.qd_line25 || brRows.reduce((s,x)=>s+x.tax,0);
       const brColors = ['var(--c-blue)','var(--c-green)','var(--c-orange)','var(--c-red)','var(--c-purple)','var(--c-teal)','var(--c-gold)'];
-      brRows.forEach((row, i) => {
-        const pct = (row.tax / lineTotal) * 100;
-        rows += `<tr><td><span class="swatch" style="background:${brColors[i%brColors.length]}"></span>${(row.rate*100).toFixed(0)}%</td><td class="num">${fmtMoney(row.amount)}</td><td class="num">${fmtMoney(row.tax)}</td><td class="num">${fmtPct(pct)}</td></tr>`;
-      });
-      const brIncomeTotal = brRows.reduce((s,x)=>s+x.amount,0);
-      const brTaxTotal = brRows.reduce((s,x)=>s+x.tax,0);
-      rows += `<tr class="total"><td>Total</td><td class="num">${fmtMoney(brIncomeTotal)}</td><td class="num">${fmtMoney(brTaxTotal)}</td><td class="num">${fmtPct((brTaxTotal/lineTotal)*100)}</td></tr>`;
-      html += `<div class="sec-body">
-        <div class="table-col"><table class="datatable"><thead><tr><th>Bracket</th><th class="num">Income in Bracket</th><th class="num">Tax in Bracket</th><th class="num">% of Total Tax</th></tr></thead><tbody>${rows}</tbody></table></div>
-        <div class="chart-col"><div class="chart-wrap">${renderPie(brRows.map((x,i)=>({label:(x.rate*100).toFixed(0)+'%', value:x.amount, color:brColors[i%brColors.length]})))}</div></div>
-      </div>`;
+      const rows = brRows.map((row, i) => swatchRow(brColors[i%brColors.length], `${(row.rate*100).toFixed(0)}%`, [fmtMoney(row.amount), fmtMoney(row.tax), fmtPct((row.tax / lineTotal) * 100)])).join('')
+        + totalRow('Total', [
+            fmtMoney(brRows.reduce((s,x)=>s+x.amount,0)),
+            fmtMoney(brRows.reduce((s,x)=>s+x.tax,0)),
+            fmtPct((brRows.reduce((s,x)=>s+x.tax,0) / lineTotal) * 100),
+          ]);
+      const table = dataTable([{label:'Bracket'}, {label:'Income in Bracket', num:true}, {label:'Tax in Bracket', num:true}, {label:'% of Total Tax', num:true}], rows);
+      const chart = renderPie(brRows.map((x,i)=>({label:(x.rate*100).toFixed(0)+'%', value:x.amount, color:brColors[i%brColors.length]})));
+      html += tableWithChart(table, chart);
     } else {
       html += `<p class="chart-empty">Couldn't compute a bracket breakdown \u2014 ordinary taxable income or filing status/year wasn't available.</p>`;
     }
@@ -1120,43 +1417,31 @@ function buildReport(r, status, cutoffFraction) {
   if (!ded || ded.amount == null) {
     html += `<p class="chart-empty">Deduction amount (Form 1040, line 12e) wasn't found in this PDF.</p>`;
   } else if (ded.isStandard) {
-    html += `<table class="datatable compact-kv"><thead><tr><th>Item</th><th class="num">Amount</th></tr></thead><tbody>
-      <tr><td>Standard Deduction (${esc(statusLabel)}, ${r.taxYear})</td><td class="num">${fmtMoney(ded.amount)}</td></tr>
-    </tbody></table>`;
+    html += kvTable([[`Standard Deduction (${statusLabel}, ${r.taxYear})`, ded.amount]]);
   } else if (ded.rows && ded.rows.length) {
-    let rows = '';
-    ded.rows.forEach(row => {
-      const pct = (row.value / ded.amount) * 100;
-      rows += `<tr><td><span class="swatch" style="background:${row.color}"></span>${esc(row.label)}</td><td class="num">${fmtMoney(row.value)}</td><td class="num">${fmtPct(pct)}</td></tr>`;
-    });
-    rows += `<tr class="total"><td>Total Itemized Deductions</td><td class="num">${fmtMoney(ded.amount)}</td><td class="num">100.0%</td></tr>`;
-    html += `<div class="sec-body">
-      <div class="table-col"><table class="datatable"><thead><tr><th>Category</th><th class="num">Amount</th><th class="num">% of Total</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="chart-col"><div class="chart-wrap">${renderPie(ded.rows.filter(x=>x.value>0), {pieTotal: ded.rows.filter(x=>x.value>0).reduce((s,x)=>s+x.value,0)})}</div></div>
-    </div>`;
+    const positiveRows = ded.rows.filter(x => x.value > 0);
+    const rows = ded.rows.map(row => swatchRow(row.color, row.label, [fmtMoney(row.value), fmtPct((row.value / ded.amount) * 100)])).join('')
+      + totalRow('Total Itemized Deductions', [fmtMoney(ded.amount), '100.0%']);
+    const table = dataTable([{label:'Category'}, {label:'Amount', num:true}, {label:'% of Total', num:true}], rows);
+    const chart = renderPie(positiveRows, {pieTotal: positiveRows.reduce((s,x)=>s+x.value,0)});
+    html += tableWithChart(table, chart);
   } else {
-    html += `<table class="datatable compact-kv"><thead><tr><th>Item</th><th class="num">Amount</th></tr></thead><tbody>
-      <tr><td>Itemized Deductions (Schedule A)</td><td class="num">${fmtMoney(ded.amount)}</td></tr>
-    </tbody></table>
-    <div class="footnote">This return itemizes, but the individual Schedule A categories couldn't be reliably matched to this total, so only the total is shown.</div>`;
+    html += kvTable([['Itemized Deductions (Schedule A)', ded.amount]]);
+    html += `<div class="footnote">This return itemizes, but the individual Schedule A categories couldn't be reliably matched to this total, so only the total is shown.</div>`;
   }
   html += sectionClose;
 
   // ---- Section: NIIT (conditional) ----
   if (r.niit && r.niit > 0) {
     html += sectionOpen('Net Investment Income Tax (NIIT)');
-    html += `<table class="datatable compact-kv"><thead><tr><th>Item</th><th class="num">Amount</th></tr></thead><tbody>
-      <tr><td>NIIT @ 3.8% (Form 8960 line 17)</td><td class="num">${fmtMoney(r.niit)}</td></tr>
-    </tbody></table>`;
+    html += kvTable([['NIIT @ 3.8% (Form 8960 line 17)', r.niit]]);
     html += sectionClose;
   }
 
   // ---- Section: Foreign Tax Credit (conditional) ----
   if (r.ftc && r.ftc > 0) {
     html += sectionOpen('Foreign Tax Credit');
-    html += `<table class="datatable compact-kv"><thead><tr><th>Item</th><th class="num">Amount</th></tr></thead><tbody>
-      <tr><td>Foreign Tax Credit (Schedule 3 line 1 / Form 1116)</td><td class="num">${fmtMoney(r.ftc)}</td></tr>
-    </tbody></table>`;
+    html += kvTable([['Foreign Tax Credit (Schedule 3 line 1 / Form 1116)', r.ftc]]);
     html += sectionClose;
   }
 
@@ -1164,21 +1449,15 @@ function buildReport(r, status, cutoffFraction) {
   if (r.required2210 && r.required2210.length === 4) {
     const pd = period2210Dates(r.taxYear);
     html += sectionOpen('Tax Payment Schedule \u2014 Form 2210 / Schedule AI', 'Period dates: 1/1\u20133/31 \u00b7 4/1\u20135/31 \u00b7 6/1\u20138/31 \u00b7 9/1\u201312/31. Deadlines per Form 2210 Part III. ES vouchers for next year excluded.');
-    let head = '<tr><th></th><th class="num">Period 1</th><th class="num">Period 2</th><th class="num">Period 3</th><th class="num">Period 4</th></tr>';
-    let periodRow = '<tr><td>Period</td>';
-    pd.ranges.forEach(p => periodRow += `<td class="num">${esc(p)}</td>`);
-    periodRow += '</tr>';
-    let deadlineRow = '<tr><td>Deadline</td>';
-    pd.deadlines.forEach(d => deadlineRow += `<td class="num">${esc(d)}</td>`);
-    deadlineRow += '</tr>';
-    let reqRow = '<tr><td>Required Payment</td>';
-    r.required2210.forEach(v => reqRow += `<td class="num">${fmtMoney(v)}</td>`);
-    reqRow += '</tr>';
-    let estRow = '<tr><td>Estimated Tax Paid</td>';
     const est = r.estimated2210 || [null,null,null,null];
-    est.forEach(v => estRow += `<td class="num">${fmtMoney(v)}</td>`);
-    estRow += '</tr>';
-    html += `<table class="datatable"><thead>${head}</thead><tbody>${periodRow}${deadlineRow}${reqRow}${estRow}</tbody></table>`;
+    const scheduleRows = [
+      ['Period', pd.ranges.map(esc)],
+      ['Deadline', pd.deadlines.map(esc)],
+      ['Required Payment', r.required2210.map(fmtMoney)],
+      ['Estimated Tax Paid', est.map(fmtMoney)],
+    ].map(([label, cells]) => `<tr><td>${label}</td>${cells.map(c => `<td class="num">${c}</td>`).join('')}</tr>`).join('');
+    const head = '<tr><th></th>' + [1,2,3,4].map(n => `<th class="num">Period ${n}</th>`).join('') + '</tr>';
+    html += `<table class="datatable"><thead>${head}</thead><tbody>${scheduleRows}</tbody></table>`;
     html += sectionClose;
   }
 
@@ -1186,9 +1465,7 @@ function buildReport(r, status, cutoffFraction) {
   const ro = refundOrOwed(r);
   html += sectionOpen('Remaining Tax Owed / Refund');
   const roLabel = ro.type === 'refund' ? 'Refund' : (ro.type === 'owed' ? 'Balance Due' : 'Settled (no refund or balance due)');
-  html += `<table class="datatable compact-kv"><thead><tr><th>Item</th><th class="num">Amount</th></tr></thead><tbody>
-    <tr><td>${esc(roLabel)}</td><td class="num">${fmtMoney(ro.amount)}</td></tr>
-  </tbody></table>`;
+  html += kvTable([[roLabel, ro.amount]]);
   html += sectionClose;
 
   html += `<div class="footnote no-print" style="text-align:center; margin-top:14px;">
